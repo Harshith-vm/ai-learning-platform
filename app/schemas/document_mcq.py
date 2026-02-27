@@ -14,6 +14,7 @@ class MCQ(BaseModel):
     options: List[MCQOption] = Field(..., description="List of 4 options")
     difficulty: Literal["easy", "medium", "hard"] = Field(..., description="Question difficulty level")
     explanation: str = Field(..., description="Explanation of the correct answer")
+    concept_tags: List[str] = Field(..., description="1-3 concept tags representing core ideas being tested")
     
     @field_validator("options")
     @classmethod
