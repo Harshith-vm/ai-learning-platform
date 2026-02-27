@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, UploadFile, File
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
+from typing import Optional
 from app.core.llm import call_llm
 from app.schemas.requests import TextInput
 from app.schemas.summary import SummaryResponse
@@ -9,6 +10,19 @@ from app.schemas.document_summary import DocumentSummaryResponse
 from app.schemas.key_points import KeyPointsResponse
 from app.schemas.flashcard import FlashcardResponse
 from app.schemas.document_mcq import MCQResponse as DocumentMCQResponse
+from app.schemas.mcq_feedback import MCQFeedbackRequest, MCQFeedbackResponse
+from app.schemas.mcq_session import MCQSessionRequest, MCQSessionResponse
+from app.schemas.learning_gain import LearningGainResponse
+from app.schemas.code_submission import CodeSubmissionRequest
+from app.schemas.code_explanation import CodeExplanationResponse
+from app.schemas.code_improvement import CodeImprovementResponse
+from app.schemas.code_complexity import ComplexityResponse
+from app.schemas.code_generation import CodeGenerationRequest, CodeGenerationResponse
+from app.schemas.code_refactor import CodeRefactorResponse
+from app.schemas.code_stepwise import CodeStepwiseResponse
+from app.schemas.code_architecture import CodeArchitectureResponse
+from app.schemas.code_refactor_impact import RefactorImpactResponse
+from app.schemas.code_quality import CodeQualityResponse
 from app.services.summary_service import generate_summary
 from app.services.mcq_service import generate_mcqs as generate_text_mcqs
 from app.services.document_service import (
@@ -23,6 +37,16 @@ from app.services.document_summary_service import summarize_document
 from app.services.key_points_service import extract_key_points
 from app.services.flashcard_service import generate_flashcards
 from app.services.document_mcq_service import generate_mcqs as generate_document_mcqs
+from app.services.mcq_feedback_service import get_mcq_feedback
+from app.services.mcq_session_service import evaluate_mcq_session
+from app.services.learning_gain_service import (
+    generate_pre_test,
+    submit_pre_test,
+    generate_post_test,
+    submit_post_test
+)
+from app.services.code_session_service import store_code_session, explain_code, improve_code, analyze_complexity, refactor_code, explain_code_stepwise, analyze_architecture, compare_refactor_impact, evaluate_code_quality
+from app.services.code_generation_service import generate_code
 import asyncio
 
 app = FastAPI(title="AI Learning Platform", version="1.0.0")
@@ -307,3 +331,307 @@ async def create_document_mcqs(document_id: str):
     """
     mcqs = await generate_document_mcqs(document_id)
     return mcqs
+
+
+@app.post("/mcq-feedback/{document_id}", response_model=MCQFeedbackResponse)
+async def create_mcq_feedback(document_id: str, request: MCQFeedbackRequest):
+    """
+    Provide instant feedback for a user's MCQ answer.
+    
+    Args:
+        document_id: The unique document identifier
+        request: MCQFeedbackRequest with question and selected option indices
+        
+    Returns:
+        MCQFeedbackResponse with correctness, explanation, and feedback message
+        
+    Raises:
+        HTTPException: If document not found, MCQs not generated, or invalid indices
+    """
+    feedback = await get_mcq_feedback(document_id, request)
+    return feedback
+
+
+@app.post("/mcq-session/{document_id}", response_model=MCQSessionResponse)
+async def create_mcq_session(document_id: str, request: MCQSessionRequest):
+    """
+    Evaluate a complete MCQ session and provide scoring.
+    
+    Args:
+        document_id: The unique document identifier
+        request: MCQSessionRequest with list of answers
+        
+    Returns:
+        MCQSessionResponse with total questions, correct answers, score percentage, and detailed results
+        
+    Raises:
+        HTTPException: If document not found, MCQs not generated, or invalid indices
+    """
+    session_result = await evaluate_mcq_session(document_id, request)
+    return session_result
+
+
+@app.post("/learning/pre-test/{document_id}", response_model=DocumentMCQResponse)
+async def create_pre_test(document_id: str):
+    """
+    Generate fresh MCQs for pre-test.
+    
+    Args:
+        document_id: The unique document identifier
+        
+    Returns:
+        MCQResponse with fresh pre-test MCQs
+        
+    Raises:
+        HTTPException: If document not found or generation fails
+    """
+    pre_test = await generate_pre_test(document_id)
+    return pre_test
+
+
+@app.post("/learning/pre-test/submit/{document_id}", response_model=MCQSessionResponse)
+async def submit_pre_test_answers(document_id: str, request: MCQSessionRequest):
+    """
+    Submit and evaluate pre-test answers.
+    
+    Args:
+        document_id: The unique document identifier
+        request: MCQSessionRequest with answers
+        
+    Returns:
+        MCQSessionResponse with score
+        
+    Raises:
+        HTTPException: If document not found or pre-test not generated
+    """
+    result = await submit_pre_test(document_id, request)
+    return result
+
+
+@app.post("/learning/post-test/{document_id}", response_model=DocumentMCQResponse)
+async def create_post_test(document_id: str):
+    """
+    Generate fresh MCQs for post-test.
+    
+    Args:
+        document_id: The unique document identifier
+        
+    Returns:
+        MCQResponse with fresh post-test MCQs
+        
+    Raises:
+        HTTPException: If document not found or generation fails
+    """
+    post_test = await generate_post_test(document_id)
+    return post_test
+
+
+@app.post("/learning/post-test/submit/{document_id}", response_model=LearningGainResponse)
+async def submit_post_test_answers(document_id: str, request: MCQSessionRequest):
+    """
+    Submit and evaluate post-test answers, compute learning gain.
+    
+    Args:
+        document_id: The unique document identifier
+        request: MCQSessionRequest with answers
+        
+    Returns:
+        LearningGainResponse with pre-score, post-score, and learning gain percentage
+        
+    Raises:
+        HTTPException: If document not found, post-test not generated, or pre-test not completed
+    """
+    result = await submit_post_test(document_id, request)
+    return result
+
+
+@app.post("/code")
+async def submit_code_session(
+    code: Optional[str] = None,
+    language: Optional[str] = None,
+    context: Optional[str] = None,
+    file: UploadFile = File(None)
+):
+    """
+    Create a code session from either raw code or file upload.
+    
+    Supports file extensions: .py, .cpp, .c, .java, .js, .ts, .go, .rs, .rb, .php, .swift, .kt, .cs, .html, .css, .sql, .sh, .r, .m, .scala
+    
+    Args:
+        code: Raw code string (optional, via JSON body)
+        language: Programming language (optional)
+        context: Additional context about the code (optional)
+        file: Uploaded code file (optional)
+        
+    Returns:
+        JSON with session_id, language, and message
+        
+    Raises:
+        HTTPException: If neither code nor file provided, or validation fails
+    """
+    # Handle both JSON body and file upload
+    # If file is provided, it takes priority
+    result = await store_code_session(code=code, language=language, file=file, context=context)
+    return result
+
+
+@app.post("/code/explain/{session_id}", response_model=CodeExplanationResponse)
+async def explain_code_session(session_id: str):
+    """
+    Generate structured explanation for stored code.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        CodeExplanationResponse with explanation text
+        
+    Raises:
+        HTTPException: If session not found or explanation fails
+    """
+    result = await explain_code(session_id)
+    return result
+
+
+@app.post("/code/improve/{session_id}", response_model=CodeImprovementResponse)
+async def improve_code_session(session_id: str):
+    """
+    Generate improvement suggestions for stored code.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        CodeImprovementResponse with improvement suggestions
+        
+    Raises:
+        HTTPException: If session not found or improvement generation fails
+    """
+    result = await improve_code(session_id)
+    return result
+
+
+@app.post("/code/complexity/{session_id}", response_model=ComplexityResponse)
+async def analyze_code_complexity(session_id: str):
+    """
+    Analyze time and space complexity of stored code.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        ComplexityResponse with time complexity, space complexity, and justification
+        
+    Raises:
+        HTTPException: If session not found or complexity analysis fails
+    """
+    result = await analyze_complexity(session_id)
+    return result
+
+
+@app.post("/code/generate", response_model=CodeGenerationResponse)
+async def generate_code_from_description(request: CodeGenerationRequest):
+    """
+    Generate code based on problem description.
+    
+    Args:
+        request: CodeGenerationRequest with problem description, language, and optional constraints
+        
+    Returns:
+        CodeGenerationResponse with generated code
+        
+    Raises:
+        HTTPException: If validation fails or code generation fails
+    """
+    result = await generate_code(request)
+    return result
+
+
+@app.post("/code/refactor/{session_id}", response_model=CodeRefactorResponse)
+async def refactor_code_session(session_id: str):
+    """
+    Refactor and improve stored code.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        CodeRefactorResponse with refactored code
+        
+    Raises:
+        HTTPException: If session not found or refactoring fails
+    """
+    result = await refactor_code(session_id)
+    return result
+
+
+@app.post("/code/stepwise/{session_id}", response_model=CodeStepwiseResponse)
+async def explain_code_stepwise_session(session_id: str):
+    """
+    Generate step-by-step explanation for stored code.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        CodeStepwiseResponse with step-by-step explanation
+        
+    Raises:
+        HTTPException: If session not found or explanation fails
+    """
+    result = await explain_code_stepwise(session_id)
+    return result
+
+
+@app.post("/code/architecture/{session_id}", response_model=CodeArchitectureResponse)
+async def analyze_code_architecture(session_id: str):
+    """
+    Perform high-level architectural analysis of stored code.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        CodeArchitectureResponse with architecture analysis
+        
+    Raises:
+        HTTPException: If session not found or analysis fails
+    """
+    result = await analyze_architecture(session_id)
+    return result
+
+
+@app.post("/code/refactor-impact/{session_id}", response_model=RefactorImpactResponse)
+async def compare_refactor_impact_endpoint(session_id: str):
+    """
+    Compare complexity between original and refactored code.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        RefactorImpactResponse with complexity comparison and improvement summary
+        
+    Raises:
+        HTTPException: If session not found, refactored code not available, or analysis fails
+    """
+    result = await compare_refactor_impact(session_id)
+    return result
+
+
+@app.post("/code/quality/{session_id}", response_model=CodeQualityResponse)
+async def evaluate_code_quality_endpoint(session_id: str):
+    """
+    Evaluate code quality with scores for readability, efficiency, and maintainability.
+    
+    Args:
+        session_id: The code session identifier
+        
+    Returns:
+        CodeQualityResponse with quality scores and summary
+        
+    Raises:
+        HTTPException: If session not found or evaluation fails
+    """
+    result = await evaluate_code_quality(session_id)
+    return result

@@ -1,5 +1,6 @@
 import json
 import re
+from typing import Optional
 from fastapi import HTTPException
 from app.core.llm import call_llm
 from app.schemas.document_mcq import MCQResponse
@@ -20,6 +21,8 @@ async def generate_mcqs(document_id: str) -> MCQResponse:
     Raises:
         HTTPException: If document not found or generation fails
     """
+    from app.services.session_helpers import store_mcqs_in_session, get_mcqs_from_session
+    
     # Fetch document from store
     if document_id not in DOCUMENT_STORE:
         raise HTTPException(
@@ -27,8 +30,8 @@ async def generate_mcqs(document_id: str) -> MCQResponse:
             detail="Document not found."
         )
     
-    # Check if MCQs already exist
-    stored_mcqs = DOCUMENT_STORE[document_id].get("mcqs")
+    # Check if MCQs already exist using helper
+    stored_mcqs = get_mcqs_from_session(document_id)
     if stored_mcqs is not None:
         return stored_mcqs
     
@@ -52,8 +55,8 @@ async def generate_mcqs(document_id: str) -> MCQResponse:
     try:
         mcqs = await _generate_mcqs_from_summary(summary_text)
         
-        # Store MCQs in DOCUMENT_STORE for reuse
-        DOCUMENT_STORE[document_id]["mcqs"] = mcqs
+        # Store MCQs in session using helper
+        store_mcqs_in_session(document_id, mcqs)
         
         return mcqs
     except Exception as e:
@@ -63,12 +66,13 @@ async def generate_mcqs(document_id: str) -> MCQResponse:
         )
 
 
-async def _generate_mcqs_from_summary(summary: str) -> MCQResponse:
+async def _generate_mcqs_from_summary(summary: str, difficulty_override: Optional[str] = None) -> MCQResponse:
     """
     Generate MCQs from a summary text.
     
     Args:
         summary: The summary text to generate MCQs from
+        difficulty_override: Optional difficulty level to force (easy, medium, hard)
         
     Returns:
         Validated MCQResponse
@@ -76,7 +80,17 @@ async def _generate_mcqs_from_summary(summary: str) -> MCQResponse:
     Raises:
         Exception: If generation or parsing fails
     """
+    # Build difficulty instruction based on override
+    if difficulty_override:
+        difficulty_instruction = f"""Generate ONLY {difficulty_override} difficulty questions.
+Every MCQ must have difficulty exactly '{difficulty_override}'.
+Do NOT mix difficulty levels."""
+    else:
+        difficulty_instruction = """Generate mixed difficulty questions (easy, medium, hard)."""
+    
     prompt = f"""Using the following summary, generate 5–10 high-quality multiple choice questions.
+
+{difficulty_instruction}
 
 Each MCQ must:
 - Test conceptual understanding
@@ -85,6 +99,12 @@ Each MCQ must:
 - 3 plausible but incorrect distractors
 - Include difficulty label (easy, medium, hard)
 - Include short explanation
+- Include 1-3 concept tags representing the core idea being tested
+
+Concept tags should be:
+- Short (2-4 words)
+- Concept-level (e.g., "nested loops", "time complexity", "data structures")
+- Not full sentences
 
 IMPORTANT:
 - Each option must contain the full answer text
@@ -106,7 +126,8 @@ Return strictly JSON format with no additional text:
         {{"option": "A database management system for storing information", "is_correct": false}}
       ],
       "difficulty": "medium",
-      "explanation": "Machine learning is indeed a subset of AI that allows systems to learn and improve from experience without being explicitly programmed."
+      "explanation": "Machine learning is indeed a subset of AI that allows systems to learn and improve from experience without being explicitly programmed.",
+      "concept_tags": ["artificial intelligence", "machine learning basics"]
     }}
   ]
 }}
@@ -145,6 +166,15 @@ Return ONLY the JSON object. No markdown, no code blocks, no explanations."""
     
     # Additional structural validation guardrails
     _validate_mcq_structure(validated_mcqs)
+    
+    # Validate difficulty override if provided
+    if difficulty_override:
+        for idx, mcq in enumerate(validated_mcqs.mcqs, 1):
+            if mcq.difficulty.lower() != difficulty_override.lower():
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Generated MCQs do not match requested difficulty. MCQ {idx} has difficulty '{mcq.difficulty}' but '{difficulty_override}' was requested."
+                )
     
     return validated_mcqs
 
@@ -261,3 +291,19 @@ def _validate_mcq_structure(mcq_response: MCQResponse) -> None:
                 detail=f"MCQ {idx} has duplicate question text."
             )
         seen_questions.add(question_normalized)
+        
+        # TASK 31A - Concept Tags Validation
+        
+        # 1. Ensure concept_tags exists and is a list
+        if not hasattr(mcq, 'concept_tags') or not isinstance(mcq.concept_tags, list):
+            raise HTTPException(
+                status_code=500,
+                detail=f"MCQ {idx} missing or invalid concept_tags field."
+            )
+        
+        # 2. Ensure at least 1 concept tag
+        if len(mcq.concept_tags) < 1:
+            raise HTTPException(
+                status_code=500,
+                detail=f"MCQ {idx} must have at least 1 concept tag."
+            )

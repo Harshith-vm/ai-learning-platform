@@ -155,7 +155,18 @@ def store_document(filename: str, text: str, chunks: List[str]) -> str:
         "key_points": None,
         "flashcards": None,
         "mcqs": None,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow(),
+        "learning_session": {
+            "pre_test_mcqs": None,
+            "pre_test_score": None,
+            "post_test_mcqs": None,
+            "post_test_score": None,
+            "learning_gain_percentage": None,
+            "current_streak": {
+                "correct": 0,
+                "wrong": 0
+            }
+        }
     }
     
     return document_id
