@@ -48,9 +48,21 @@ from app.services.learning_gain_service import (
 from app.services.code_session_service import store_code_session, explain_code, improve_code, analyze_complexity, refactor_code, explain_code_stepwise, analyze_architecture, compare_refactor_impact, evaluate_code_quality
 from app.services.code_generation_service import generate_code
 import asyncio
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="AI Learning Platform", version="1.0.0")
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://192.168.1.8:3000",  # your frontend network IP
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Global Exception Handlers
 
