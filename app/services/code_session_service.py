@@ -170,71 +170,66 @@ def get_code_session(session_id: str) -> Dict[str, Any]:
 
 
 
-async def explain_code(session_id: str) -> Dict[str, Any]:
+async def explain_code(session_id: str, persona: Optional[str] = None) -> Dict[str, Any]:
     """
     Generate structured explanation for stored code.
-    
+
     Args:
         session_id: The code session ID
-        
+        persona: Optional persona type (beginner, student, senior_dev)
+
     Returns:
         Dictionary with explanation text
-        
+
     Raises:
         HTTPException: If session not found or explanation fails
     """
     from app.core.llm import call_llm
-    
+    from app.core.prompts import build_task_prompt
+
     # Validate session exists
     if session_id not in CODE_STORE:
         raise HTTPException(
             status_code=404,
             detail="Code session not found."
         )
-    
+
     # Retrieve code and language
     session = CODE_STORE[session_id]
     code = session.get("code")
     language = session.get("language", "unknown")
-    
+
     # Validate code exists
     if not code:
         raise HTTPException(
             status_code=400,
             detail="No code found in session."
         )
-    
-    # Build LLM prompt
-    prompt = f"""Explain the following {language} code clearly and professionally.
 
-Describe:
-- What the code does
-- Input/output behavior
-- Main logic
-- Important constructs used
+    # Build persona-aware task prompt
+    prompt = build_task_prompt(
+        task_type="code_explain",
+        content=code,
+        language=language,
+        persona=persona
+    )
 
-Keep explanation structured in paragraphs.
-Avoid markdown.
-Return plain text only.
-
-Code:
-{code}"""
-    
-    # Call LLM
+    # Call LLM with persona
     try:
-        explanation_text = await call_llm(prompt)
-        
+        explanation_text = await call_llm(prompt, persona=persona)
+
         # Store explanation in CODE_STORE
         CODE_STORE[session_id]["analysis"] = explanation_text
-        
+
         return {
             "explanation": explanation_text
         }
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail="Failed to generate code explanation."
+            detail=str(e)
         )
+
 
 
 
@@ -933,4 +928,65 @@ Return ONLY the JSON object. No markdown, no code blocks, no explanations."""
         raise HTTPException(
             status_code=500,
             detail="Failed to evaluate code quality."
+        )
+
+
+async def stream_explain_code(session_id: str, persona: Optional[str] = None):
+    """
+    Stream code explanation progressively.
+    
+    Args:
+        session_id: The code session ID
+        persona: Optional persona type (beginner, student, senior_dev)
+        
+    Yields:
+        Text chunks of the explanation
+        
+    Raises:
+        HTTPException: If session not found or streaming fails
+    """
+    from app.core.llm import stream_llm
+    from app.core.prompts import build_task_prompt
+    
+    # Validate session exists
+    if session_id not in CODE_STORE:
+        raise HTTPException(
+            status_code=404,
+            detail="Code session not found."
+        )
+    
+    # Retrieve code and language
+    session = CODE_STORE[session_id]
+    code = session.get("code")
+    language = session.get("language", "unknown")
+    
+    # Validate code exists
+    if not code:
+        raise HTTPException(
+            status_code=400,
+            detail="No code found in session."
+        )
+    
+    # Build persona-aware task prompt
+    prompt = build_task_prompt(
+        task_type="code_explain",
+        content=code,
+        language=language,
+        persona=persona
+    )
+    
+    # Stream LLM response with persona
+    try:
+        full_explanation = ""
+        async for chunk in stream_llm(prompt, persona=persona):
+            full_explanation += chunk
+            yield chunk
+        
+        # Store complete explanation in CODE_STORE after streaming
+        CODE_STORE[session_id]["analysis"] = full_explanation
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to stream code explanation."
         )

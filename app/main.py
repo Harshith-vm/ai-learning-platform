@@ -1,9 +1,9 @@
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Query
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Optional
 from app.core.llm import call_llm
-from app.schemas.requests import TextInput
+from app.schemas.requests import TextInput, ConceptRequest
 from app.schemas.summary import SummaryResponse
 from app.schemas.mcq import MCQResponse
 from app.schemas.document_summary import DocumentSummaryResponse
@@ -154,6 +154,75 @@ async def create_mcqs(request: TextInput):
         raise HTTPException(status_code=422, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/concept/explain")
+async def explain_concept(
+    request: ConceptRequest,
+    persona: Optional[str] = Query(None, description="Persona type: beginner, student, or senior_dev")
+):
+    """
+    Explain a concept with persona-aware framing and prerequisite extraction.
+    
+    Supports persona adaptation via query parameter: ?persona=beginner
+    
+    Args:
+        request: ConceptRequest containing the concept to explain
+        persona: Optional persona type for adaptive explanation (beginner, student, senior_dev)
+        
+    Returns:
+        JSON with concept, explanation, and prerequisites
+        
+    Raises:
+        HTTPException: If concept is empty or explanation fails
+    """
+    from app.core.prompts import build_task_prompt
+    
+    # Validate concept is not empty
+    if not request.concept or not request.concept.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Concept cannot be empty"
+        )
+    
+    try:
+        # Build persona-aware task prompt
+        prompt = build_task_prompt(
+            task_type="concept_explain",
+            content=request.concept,
+            persona=persona
+        )
+        
+        # Call LLM with persona
+        response = await call_llm(prompt, persona=persona)
+        
+        # Parse response to extract explanation and prerequisites
+        if "PREREQUISITES:" in response:
+            parts = response.split("PREREQUISITES:", 1)
+            explanation_text = parts[0].strip()
+            prerequisites_text = parts[1].strip()
+            
+            # Convert comma-separated string to list
+            prerequisites = [
+                prereq.strip() 
+                for prereq in prerequisites_text.split(",") 
+                if prereq.strip()
+            ]
+        else:
+            # Fallback if PREREQUISITES section not found
+            explanation_text = response.strip()
+            prerequisites = []
+        
+        return {
+            "concept": request.concept,
+            "explanation": explanation_text,
+            "prerequisites": prerequisites
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate explanation: {str(e)}"
+        )
 
 
 @app.post("/upload-document")
@@ -474,23 +543,41 @@ async def submit_code_session(
     result = await store_code_session(code=code, language=language, file=file, context=context)
     return result
 
-
-@app.post("/code/explain/{session_id}", response_model=CodeExplanationResponse)
-async def explain_code_session(session_id: str):
+@app.post("/code/explain/{session_id}")
+async def explain_code_session(
+    session_id: str,
+    stream: bool = Query(False),
+    persona: Optional[str] = Query(None, description="Persona type: beginner, student, or senior_dev")
+):
     """
     Generate structured explanation for stored code.
-    
+
+    Supports streaming via query parameter: ?stream=true
+    Supports persona adaptation via query parameter: ?persona=beginner
+
     Args:
         session_id: The code session identifier
-        
+        stream: If True, stream the explanation progressively (default: False)
+        persona: Optional persona type for adaptive explanation (beginner, student, senior_dev)
+
     Returns:
-        CodeExplanationResponse with explanation text
-        
+        If stream=False: CodeExplanationResponse with explanation text (JSON)
+        If stream=True: StreamingResponse with text/plain content
+
     Raises:
         HTTPException: If session not found or explanation fails
     """
-    result = await explain_code(session_id)
-    return result
+    if stream:
+        # Return streaming response with persona
+        return StreamingResponse(
+            stream_explain_code(session_id, persona=persona),
+            media_type="text/plain"
+        )
+    else:
+        # Return normal JSON response with persona
+        result = await explain_code(session_id, persona=persona)
+        return result
+
 
 
 @app.post("/code/improve/{session_id}", response_model=CodeImprovementResponse)
