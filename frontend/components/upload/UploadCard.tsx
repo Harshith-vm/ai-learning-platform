@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useDocument } from "@/contexts/DocumentContext";
 import { DragDropZone } from "./DragDropZone";
 import { FileMetaDisplay } from "./FileMetaDisplay";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,9 +27,10 @@ const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 
 export function UploadCard() {
   const router = useRouter();
+  const { setDocumentId, setDocumentName } = useDocument();
   const [state, setState] = useState<UploadState>("idle");
   const [file, setFile] = useState<UploadedFile | null>(null);
-  const [documentId, setDocumentId] = useState<string>("");
+  const [localDocumentId, setLocalDocumentId] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [progress, setProgress] = useState(0);
 
@@ -44,7 +46,7 @@ export function UploadCard() {
 
   const handleFileSelect = async (selectedFile: File) => {
     setError("");
-    
+
     const validationError = validateFile(selectedFile);
     if (validationError) {
       setError(validationError);
@@ -62,7 +64,7 @@ export function UploadCard() {
     setProgress(0);
 
     try {
-      
+
 
       // Simulate progress
       const progressInterval = setInterval(() => {
@@ -76,17 +78,17 @@ export function UploadCard() {
       }, 200);
 
       const formData = new FormData();
-formData.append("file", selectedFile); // ✅ correct File object
+      formData.append("file", selectedFile); // ✅ correct File object
 
-const response = await fetch("http://127.0.0.1:8000/upload-document", {
-  method: "POST",
-  body: formData,
-});
+      const response = await fetch("http://127.0.0.1:8000/upload-document", {
+        method: "POST",
+        body: formData,
+      });
 
-if (!response.ok) {
-  const err = await response.text();
-  throw new Error(err);
-}
+      if (!response.ok) {
+        const err = await response.text();
+        throw new Error(err);
+      }
 
       const data = await response.json();
 
@@ -102,7 +104,9 @@ if (!response.ok) {
 
       // Store document_id from response
       if (data.document_id) {
+        setLocalDocumentId(data.document_id);
         setDocumentId(data.document_id);
+        setDocumentName(selectedFile.name);
       }
 
       setState("success");
@@ -119,14 +123,15 @@ if (!response.ok) {
   const handleReset = () => {
     setState("idle");
     setFile(null);
-    setDocumentId("");
+    setLocalDocumentId("");
     setError("");
     setProgress(0);
   };
 
   const handleProcessDocument = () => {
-    if (documentId) {
-      router.push(`/summarize/${documentId}`);
+    if (localDocumentId) {
+      // Navigate to learning gain dashboard instead of summarize page
+      router.push("/learning-gain");
     }
   };
 
@@ -159,7 +164,7 @@ if (!response.ok) {
                   <Loader2 className="w-8 h-8 text-primary-600 animate-spin" />
                 </div>
               </div>
-              
+
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 mb-2">
                   Uploading...
@@ -228,10 +233,10 @@ if (!response.ok) {
                 </button>
                 <button
                   onClick={handleProcessDocument}
-                  disabled={!documentId}
+                  disabled={!localDocumentId}
                   className={cn(
                     "px-6 py-2.5 rounded-lg text-sm font-medium",
-                    documentId
+                    localDocumentId
                       ? "bg-primary-600 text-white hover:bg-primary-700"
                       : "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed",
                     "transition-colors",

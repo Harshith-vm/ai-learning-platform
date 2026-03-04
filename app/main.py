@@ -25,6 +25,8 @@ from app.schemas.code_refactor_impact import RefactorImpactResponse
 from app.schemas.code_quality import CodeQualityResponse
 from app.services.summary_service import generate_summary
 from app.services.mcq_service import generate_mcqs as generate_text_mcqs
+from pydantic import BaseModel
+from typing import Optional
 from app.services.document_service import (
     extract_text_from_file, 
     validate_file_type, 
@@ -174,7 +176,7 @@ async def explain_concept(
     persona: Optional[str] = Query(None, description="Persona type: beginner, student, or senior_dev")
 ):
     """
-    Explain a concept with persona-aware framing and prerequisite extraction.
+    Explain a concept with persona-aware framing and structured educational breakdown.
     
     Supports persona adaptation via query parameter: ?persona=beginner
     
@@ -183,12 +185,13 @@ async def explain_concept(
         persona: Optional persona type for adaptive explanation (beginner, student, senior_dev)
         
     Returns:
-        JSON with concept, explanation, and prerequisites
+        JSON with concept, explanation, key_ideas, examples, common_mistakes, and prerequisites
         
     Raises:
         HTTPException: If concept is empty or explanation fails
     """
     from app.core.prompts import build_task_prompt
+    import re
     
     # Validate concept is not empty
     if not request.concept or not request.concept.strip():
@@ -208,26 +211,83 @@ async def explain_concept(
         # Call LLM with persona
         response = await call_llm(prompt, persona=persona)
         
-        # Parse response to extract explanation and prerequisites
+        # Parse structured response
+        concept_name = request.concept
+        explanation_text = ""
+        key_ideas = []
+        examples = []
+        common_mistakes = []
+        prerequisites = []
+        
+        # Extract EXPLANATION section
+        if "EXPLANATION:" in response:
+            explanation_match = re.search(r'EXPLANATION:\s*(.*?)(?=KEY_IDEAS:|EXAMPLES:|COMMON_MISTAKES:|PREREQUISITES:|$)', response, re.DOTALL)
+            if explanation_match:
+                explanation_text = explanation_match.group(1).strip()
+        
+        # Extract KEY_IDEAS section
+        if "KEY_IDEAS:" in response:
+            key_ideas_match = re.search(r'KEY_IDEAS:\s*(.*?)(?=EXAMPLES:|COMMON_MISTAKES:|PREREQUISITES:|$)', response, re.DOTALL)
+            if key_ideas_match:
+                key_ideas_text = key_ideas_match.group(1).strip()
+                # Parse bullet points or lines
+                key_ideas = [
+                    line.strip().lstrip('-').lstrip('•').strip()
+                    for line in key_ideas_text.split('\n')
+                    if line.strip() and not line.strip().startswith('EXAMPLES:')
+                ]
+        
+        # Extract EXAMPLES section
+        if "EXAMPLES:" in response:
+            examples_match = re.search(r'EXAMPLES:\s*(.*?)(?=COMMON_MISTAKES:|PREREQUISITES:|$)', response, re.DOTALL)
+            if examples_match:
+                examples_text = examples_match.group(1).strip()
+                # Parse bullet points or lines
+                examples = [
+                    line.strip().lstrip('-').lstrip('•').strip()
+                    for line in examples_text.split('\n')
+                    if line.strip() and not line.strip().startswith('COMMON_MISTAKES:')
+                ]
+        
+        # Extract COMMON_MISTAKES section
+        if "COMMON_MISTAKES:" in response:
+            mistakes_match = re.search(r'COMMON_MISTAKES:\s*(.*?)(?=PREREQUISITES:|$)', response, re.DOTALL)
+            if mistakes_match:
+                mistakes_text = mistakes_match.group(1).strip()
+                # Parse Mistake/Correction pairs
+                mistake_pattern = r'Mistake:\s*(.*?)\s*Correction:\s*(.*?)(?=Mistake:|$)'
+                mistake_matches = re.finditer(mistake_pattern, mistakes_text, re.DOTALL)
+                for match in mistake_matches:
+                    mistake = match.group(1).strip()
+                    correction = match.group(2).strip()
+                    if mistake and correction:
+                        common_mistakes.append({
+                            "mistake": mistake,
+                            "correction": correction
+                        })
+        
+        # Extract PREREQUISITES section
         if "PREREQUISITES:" in response:
-            parts = response.split("PREREQUISITES:", 1)
-            explanation_text = parts[0].strip()
-            prerequisites_text = parts[1].strip()
-            
-            # Convert comma-separated string to list
-            prerequisites = [
-                prereq.strip() 
-                for prereq in prerequisites_text.split(",") 
-                if prereq.strip()
-            ]
-        else:
-            # Fallback if PREREQUISITES section not found
+            prereq_match = re.search(r'PREREQUISITES:\s*(.*?)$', response, re.DOTALL)
+            if prereq_match:
+                prerequisites_text = prereq_match.group(1).strip()
+                # Convert comma-separated string to list
+                prerequisites = [
+                    prereq.strip()
+                    for prereq in prerequisites_text.split(',')
+                    if prereq.strip()
+                ]
+        
+        # Fallback: if explanation is empty, use entire response
+        if not explanation_text:
             explanation_text = response.strip()
-            prerequisites = []
         
         return {
-            "concept": request.concept,
+            "concept": concept_name,
             "explanation": explanation_text,
+            "key_ideas": key_ideas,
+            "examples": examples,
+            "common_mistakes": common_mistakes,
             "prerequisites": prerequisites
         }
     except Exception as e:
@@ -526,33 +586,30 @@ async def submit_post_test_answers(document_id: str, request: MCQSessionRequest)
     return result
 
 
+from fastapi import UploadFile, File, Form
+from typing import Optional
+
+class CodeInput(BaseModel):
+    code: str
+    language: Optional[str] = None
+    context: Optional[str] = None
+
 @app.post("/code")
-async def submit_code_session(
-    code: Optional[str] = None,
-    language: Optional[str] = None,
-    context: Optional[str] = None,
-    file: UploadFile = File(None)
-):
-    """
-    Create a code session from either raw code or file upload.
-    
-    Supports file extensions: .py, .cpp, .c, .java, .js, .ts, .go, .rs, .rb, .php, .swift, .kt, .cs, .html, .css, .sql, .sh, .r, .m, .scala
-    
-    Args:
-        code: Raw code string (optional, via JSON body)
-        language: Programming language (optional)
-        context: Additional context about the code (optional)
-        file: Uploaded code file (optional)
-        
-    Returns:
-        JSON with session_id, language, and message
-        
-    Raises:
-        HTTPException: If neither code nor file provided, or validation fails
-    """
-    # Handle both JSON body and file upload
-    # If file is provided, it takes priority
-    result = await store_code_session(code=code, language=language, file=file, context=context)
+async def submit_code(data: CodeInput):
+    code = data.code
+    language = data.language
+    context = data.context
+
+    if not code or code.strip() == "":
+        raise HTTPException(status_code=400, detail="No code provided")
+
+    result = await store_code_session(
+        code=code,
+        language=language,
+        file=None,
+        context=context,
+    )
+
     return result
 
 @app.post("/code/explain/{session_id}")

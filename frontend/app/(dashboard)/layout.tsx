@@ -2,6 +2,7 @@
 
 import { PersonaProvider } from "@/contexts/PersonaContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
+import { DocumentProvider } from "@/contexts/DocumentContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { MainContent } from "@/components/layout/MainContent";
@@ -11,6 +12,7 @@ const pageTitles: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/upload": "Upload Document",
   "/summarize": "Summarize Documents",
+  "/flashcards": "Flashcards",
   "/mcqs": "Generate MCQs",
   "/code": "Code Intelligence",
   "/simplify": "Simplify Concepts",
@@ -22,7 +24,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  
+
   // Handle dynamic routes
   let title = "Dashboard";
   if (pathname.startsWith("/summarize/")) {
@@ -40,13 +42,15 @@ export default function DashboardLayout({
   return (
     <ThemeProvider>
       <PersonaProvider>
-        <div className="flex h-screen overflow-hidden">
-          <Sidebar />
-          <div className="flex flex-col flex-1">
-            <Header title={title} />
-            <MainContent>{children}</MainContent>
+        <DocumentProvider>
+          <div className="flex h-screen overflow-hidden">
+            <Sidebar />
+            <div className="flex flex-col flex-1">
+              <Header title={title} />
+              <MainContent>{children}</MainContent>
+            </div>
           </div>
-        </div>
+        </DocumentProvider>
       </PersonaProvider>
     </ThemeProvider>
   );

@@ -32,7 +32,7 @@ class Settings:
         self.S3_BUCKET_NAME: Optional[str] = os.getenv("S3_BUCKET_NAME")
         
         # File Upload Configuration
-        self.MAX_FILE_SIZE: int = 5 * 1024 * 1024  # 5MB
+        self.MAX_FILE_SIZE: int = 50 * 1024 * 1024  # 5MB
         
         self.LLM_PROVIDER = os.getenv("LLM_PROVIDER", "groq")
         # Validate environment

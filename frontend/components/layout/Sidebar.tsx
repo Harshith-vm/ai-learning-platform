@@ -15,6 +15,8 @@ import {
   Sparkles,
   Upload,
   TrendingUp,
+  Layers,
+  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,9 +30,11 @@ const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Upload", href: "/upload", icon: Upload },
   { label: "Summarize", href: "/summarize", icon: FileText },
+  { label: "Flashcards", href: "/flashcards", icon: Layers },
   { label: "MCQs", href: "/mcqs", icon: HelpCircle },
-  { label: "Learning Gain", href: "/learning-gain/demo", icon: TrendingUp },
+  { label: "Learning Gain", href: "/learning-gain", icon: TrendingUp },
   { label: "Code", href: "/code", icon: Code2 },
+  { label: "Code Generator", href: "/code-generator", icon: Wand2 },
   { label: "Simplify", href: "/simplify", icon: Lightbulb },
 ];
 
