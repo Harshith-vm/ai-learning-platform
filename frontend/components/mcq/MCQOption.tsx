@@ -22,7 +22,7 @@ export function MCQOption({
   onSelect,
 }: MCQOptionProps) {
   const optionLabels = ["A", "B", "C", "D"];
-  
+
   // Deterministic feedback logic with clear priority:
   // 1. If answered and this is the correct option → always show green
   // 2. If answered and this is selected but incorrect → show red
@@ -38,20 +38,13 @@ export function MCQOption({
       whileHover={!isAnswered ? { scale: 1.02 } : {}}
       whileTap={!isAnswered ? { scale: 0.98 } : {}}
       className={cn(
-        "w-full text-left p-5 rounded-xl transition-all duration-200",
-        "border-2",
-        // Default state (not answered)
-        !isSelected && !isAnswered && "bg-card border-border hover:border-primary/50",
-        // Selected but not answered
-        isSelected && !isAnswered && "bg-primary/10 border-primary",
-        // Correct answer (always green when answered, regardless of selection)
-        showAsCorrect && "bg-success/10 border-success shadow-lg shadow-success/10",
-        // Incorrect selected answer (red only if selected and wrong)
-        showAsIncorrect && "bg-error/10 border-error shadow-lg shadow-error/10",
-        // Neutral answered state (not selected, not correct)
-        isAnswered && !showAsCorrect && !showAsIncorrect && "bg-muted/30 border-border opacity-60",
-        // Disabled state
-        isAnswered && "cursor-not-allowed"
+        "w-full text-left p-5 rounded-xl transition-all duration-200 border-2",
+        !isSelected && !isAnswered ? "bg-card border-border hover:border-primary/50" : "",
+        isSelected && !isAnswered ? "bg-primary/10 border-primary" : "",
+        showAsCorrect ? "bg-success/10 border-success shadow-lg shadow-success/10" : "",
+        showAsIncorrect ? "bg-error/10 border-error shadow-lg shadow-error/10" : "",
+        isAnswered && !showAsCorrect && !showAsIncorrect ? "bg-muted/30 border-border opacity-60" : "",
+        isAnswered ? "cursor-not-allowed" : ""
       )}
     >
       <div className="flex items-start gap-4">
@@ -59,11 +52,11 @@ export function MCQOption({
         <div
           className={cn(
             "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center font-semibold text-sm transition-colors",
-            !isSelected && !isAnswered && "bg-muted text-muted-foreground",
-            isSelected && !isAnswered && "bg-primary/20 text-primary",
-            showAsCorrect && "bg-success/20 text-success",
-            showAsIncorrect && "bg-error/20 text-error",
-            isAnswered && !showAsCorrect && !showAsIncorrect && "bg-muted/50 text-muted-foreground"
+            !isSelected && !isAnswered ? "bg-muted text-muted-foreground" : "",
+            isSelected && !isAnswered ? "bg-primary/20 text-primary" : "",
+            showAsCorrect ? "bg-success/20 text-success" : "",
+            showAsIncorrect ? "bg-error/20 text-error" : "",
+            isAnswered && !showAsCorrect && !showAsIncorrect ? "bg-muted/50 text-muted-foreground" : ""
           )}
         >
           {optionLabels[index]}
@@ -72,11 +65,11 @@ export function MCQOption({
         {/* Option Text */}
         <div className="flex-1 pt-0.5">
           <p className={cn(
-            "leading-relaxed transition-colors",
-            showAsCorrect && "text-success-foreground",
-            showAsIncorrect && "text-error-foreground",
-            !isAnswered && "text-foreground",
-            isAnswered && !showAsCorrect && !showAsIncorrect && "text-muted-foreground"
+            "leading-relaxed transition-colors font-medium",
+            showAsCorrect ? "text-green-100" : "",
+            showAsIncorrect ? "text-red-100" : "",
+            !isAnswered ? "text-slate-100" : "",
+            isAnswered && !showAsCorrect && !showAsIncorrect ? "text-slate-400" : ""
           )}>
             {option}
           </p>

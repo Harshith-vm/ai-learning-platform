@@ -203,106 +203,138 @@ Code:
 
 def _build_concept_explain_prompt(concept: str, persona: str = None) -> str:
     """
-    Build persona-aware concept explanation prompt with layered structure.
+    Build persona-aware concept explanation prompt with structured output format.
     
     Args:
         concept: The concept to explain
         persona: Persona type (beginner, student, senior_dev, or None)
         
     Returns:
-        Formatted prompt string
+        Formatted prompt string with strict structured output
     """
-    # Persona-specific task framing with layered structure
+    # Persona-specific task framing with structured output
     if persona == "beginner":
         task_instruction = f"""Explain the concept: "{concept}"
 
-Structure your explanation in the following order:
+Provide a simple, beginner-friendly explanation using everyday language.
 
-1. Simple definition: Provide a simple, clear definition in everyday language.
+Return your response in EXACTLY this format:
 
-2. Step-by-step explanation: Break down how this concept works into small, easy-to-follow steps.
+CONCEPT: {concept}
 
-3. Real-world analogies: Include at least 2 simple real-world analogies. Use everyday objects or situations that anyone can relate to. Each analogy must clearly map to the concept. Do not use technical metaphors. Keep language simple.
+EXPLANATION:
+[Provide a simple, clear explanation in everyday language. Break down how this concept works into small, easy-to-follow steps. Include 1-2 simple real-world analogies using everyday objects or situations. Keep language simple and avoid technical jargon.]
 
-4. Small example: Provide a simple, concrete example that illustrates the concept.
+KEY_IDEAS:
+- [First key idea about this concept]
+- [Second key idea]
+- [Third key idea]
 
-Keep language simple. Avoid technical jargon completely. Use plain text only. Do not use markdown formatting, bullet points, or symbols.
+EXAMPLES:
+- [First simple, concrete example]
+- [Second example if applicable]
 
-After completing the explanation, add a new line and write:
-PREREQUISITES: <list 3-6 prerequisite concepts required to understand this topic as a clean comma-separated list without explanations>
+COMMON_MISTAKES:
+Mistake: [Common mistake beginners make]
+Correction: [How to correct this mistake]
+Mistake: [Another common mistake]
+Correction: [How to correct this mistake]
+
+PREREQUISITES:
+[Comma-separated list of 3-6 prerequisite concepts needed to understand this topic]
 
 Concept to explain: {concept}"""
     
     elif persona == "student":
         task_instruction = f"""Provide an academic explanation of the concept: "{concept}"
 
-Structure your explanation in the following order:
+Return your response in EXACTLY this format:
 
-1. Formal definition: Provide a precise, academic definition of the concept.
+CONCEPT: {concept}
 
-2. How it works: Explain the underlying mechanism and how this concept operates.
+EXPLANATION:
+[Provide a precise, academic definition and explanation. Explain the underlying mechanism, why it's important, and include 1-2 conceptual analogies. Maintain moderate technical depth with proper terminology.]
 
-3. Why it is important: Discuss the significance and relevance of this concept.
+KEY_IDEAS:
+- [First key idea about this concept]
+- [Second key idea]
+- [Third key idea]
+- [Fourth key idea if applicable]
 
-4. Conceptual analogies: Include 1 or 2 conceptual analogies that reinforce understanding. Analogies should connect the mechanism to familiar systems. Avoid childish comparisons. Keep tone academic.
+EXAMPLES:
+- [First meaningful example that illustrates the concept]
+- [Second example showing different application]
 
-5. Example: Provide a meaningful example that illustrates the concept in practice.
+COMMON_MISTAKES:
+Mistake: [Common misconception or confusion point]
+Correction: [Correct understanding]
+Mistake: [Another typical misunderstanding]
+Correction: [Clarification]
 
-6. Common misunderstandings: Address typical misconceptions or confusion points.
-
-Maintain moderate technical depth. Use proper terminology with definitions. Use plain text only. Do not use markdown formatting, bullet points, or symbols.
-
-After completing the explanation, add a new line and write:
-PREREQUISITES: <list 3-6 prerequisite concepts required to understand this topic as a clean comma-separated list without explanations>
+PREREQUISITES:
+[Comma-separated list of 3-6 prerequisite concepts needed to understand this topic]
 
 Concept to explain: {concept}"""
     
     elif persona == "senior_dev":
         task_instruction = f"""Provide a technical conceptual breakdown of: "{concept}"
 
-Structure your explanation in the following order:
+Return your response in EXACTLY this format:
 
-1. Precise definition: Provide a technically accurate, concise definition.
+CONCEPT: {concept}
 
-2. Underlying mechanism: Explain the deeper technical mechanisms and how it works internally.
+EXPLANATION:
+[Provide a technically accurate, concise definition. Explain deeper technical mechanisms, architectural implications, trade-offs, failure modes, and performance characteristics. Use dense, technical tone.]
 
-3. Architectural implications: Discuss how this concept affects system design and architecture.
+KEY_IDEAS:
+- [First key technical insight]
+- [Second key insight]
+- [Third key insight]
+- [Fourth insight if applicable]
 
-4. Trade-offs: Analyze the trade-offs, benefits, and costs of using this concept.
+EXAMPLES:
+- [First technical example or use case]
+- [Second example showing architectural application]
 
-5. Technical analogy (if applicable): Include an analogy only if it clarifies architectural reasoning. If included, the analogy must be technical, such as system architecture parallels or engineering patterns. Do not use simplistic metaphors. If an analogy is unnecessary, omit it.
+COMMON_MISTAKES:
+Mistake: [Common implementation mistake or anti-pattern]
+Correction: [Proper approach]
+Mistake: [Another technical pitfall]
+Correction: [Best practice]
 
-6. Failure modes: Identify potential failure scenarios or edge cases.
-
-7. When not to use: Explain situations where this concept should be avoided.
-
-8. Performance implications: Discuss performance characteristics if relevant.
-
-Use dense, technical tone. Do not explain basic terminology. Assume strong technical background. Use plain text only. Do not use markdown formatting, bullet points, or symbols.
-
-After completing the explanation, add a new line and write:
-PREREQUISITES: <list 3-6 prerequisite concepts required to understand this topic as a clean comma-separated list without explanations>
+PREREQUISITES:
+[Comma-separated list of 3-6 prerequisite concepts needed to understand this topic]
 
 Concept to explain: {concept}"""
     
     else:
-        # Default generic prompt (no persona) with neutral structure
+        # Default generic prompt (no persona) with structured output
         task_instruction = f"""Explain the following concept clearly and professionally.
 
-Structure your explanation in the following order:
+Return your response in EXACTLY this format:
 
-1. Definition: Provide a clear definition of what this concept means.
+CONCEPT: {concept}
 
-2. Explanation: Explain how this concept works and its key characteristics.
+EXPLANATION:
+[Provide a clear definition and explanation of what this concept means, how it works, and its key characteristics. Include 1 general analogy that helps illustrate the concept.]
 
-3. Analogy: Include 1 general analogy that helps illustrate the concept.
+KEY_IDEAS:
+- [First key idea about this concept]
+- [Second key idea]
+- [Third key idea]
 
-4. Example: Provide a concrete example that illustrates the concept.
+EXAMPLES:
+- [First concrete example]
+- [Second example if applicable]
 
-Use plain text only. Do not use markdown formatting, bullet points, or symbols.
+COMMON_MISTAKES:
+Mistake: [Common mistake or misconception]
+Correction: [How to correct or clarify]
+Mistake: [Another common mistake]
+Correction: [Proper understanding]
 
-After completing the explanation, add a new line and write:
-PREREQUISITES: <list 3-6 prerequisite concepts required to understand this topic as a clean comma-separated list without explanations>
+PREREQUISITES:
+[Comma-separated list of 3-6 prerequisite concepts needed to understand this topic]
 
 Concept to explain: {concept}"""
     

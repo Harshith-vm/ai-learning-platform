@@ -58,7 +58,7 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
           <TrendingUp className="w-10 h-10 text-white" />
         </motion.div>
         <h1 className="text-4xl font-bold text-white">Your Learning Journey</h1>
-        <p className="text-slate-400 max-w-2xl mx-auto">
+        <p className="text-slate-300 max-w-2xl mx-auto">
           See how much you've grown from pre-test to post-test
         </p>
       </motion.div>
@@ -68,11 +68,11 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 22, delay: 0.2 }}
-        className="bg-gradient-to-br from-slate-800/60 to-slate-900/60 rounded-2xl p-8 border border-slate-700/50 space-y-8"
+        className="bg-slate-900/60 backdrop-blur-md rounded-2xl p-8 border border-slate-700 space-y-8"
       >
         {/* Learning Gain Percentage */}
         <div className="text-center space-y-4">
-          <div className="text-sm font-bold tracking-widest text-slate-400 uppercase">
+          <div className="text-sm font-bold tracking-widest text-slate-300 uppercase">
             Learning Gain
           </div>
           <motion.div
@@ -111,16 +111,16 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
             transition={{ type: "spring", stiffness: 200, damping: 22, delay: 0.4 }}
             className="space-y-4"
           >
-            <div className="flex items-center gap-2 text-slate-400">
+            <div className="flex items-center gap-2 text-slate-300">
               <Target className="w-4 h-4" />
               <span className="text-sm font-semibold uppercase tracking-wider">Pre-Test</span>
             </div>
             <div className="space-y-3">
               <div className="text-4xl font-bold text-white">{pre_score.toFixed(0)}%</div>
               {/* Progress Bar */}
-              <div className="h-3 bg-slate-900/50 rounded-full overflow-hidden">
+              <div className="h-3 bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-slate-600 to-slate-500"
+                  className="h-full bg-gradient-to-r from-slate-500 to-slate-400"
                   initial={{ width: 0 }}
                   animate={{ width: `${pre_score}%` }}
                   transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.5 }}
@@ -143,9 +143,9 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
             <div className="space-y-3">
               <div className="text-4xl font-bold text-white">{post_score.toFixed(0)}%</div>
               {/* Progress Bar */}
-              <div className="h-3 bg-slate-900/50 rounded-full overflow-hidden">
+              <div className="h-3 bg-slate-800/80 rounded-full overflow-hidden border border-slate-700/50">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-emerald-600 to-emerald-500 shadow-lg shadow-emerald-500/30"
+                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-lg shadow-emerald-500/30"
                   initial={{ width: 0 }}
                   animate={{ width: `${post_score}%` }}
                   transition={{ type: "spring", stiffness: 100, damping: 20, delay: 0.6 }}
@@ -161,15 +161,15 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
-            className="pt-6 border-t border-slate-700/50"
+            className="pt-6 border-t border-slate-700"
           >
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-indigo-500/20 flex items-center justify-center">
+                <Sparkles className="w-4 h-4 text-indigo-300" />
               </div>
               <div className="flex-1">
-                <div className="text-sm font-semibold text-indigo-400 mb-2">AI Insight</div>
-                <p className="text-slate-300 leading-relaxed">{learning_insight}</p>
+                <div className="text-sm font-semibold text-indigo-300 mb-2">AI Insight</div>
+                <p className="text-slate-200 leading-relaxed">{learning_insight}</p>
               </div>
             </div>
           </motion.div>
@@ -181,19 +181,19 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="grid md:grid-cols-2 gap-6 pt-6 border-t border-slate-700/50"
+            className="grid md:grid-cols-2 gap-6 pt-6 border-t border-slate-700"
           >
             {/* Strong Concepts */}
             {hasData(safeStrongConcepts) && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-emerald-400 uppercase tracking-wider">
+                <div className="text-sm font-semibold text-emerald-300 uppercase tracking-wider">
                   ✓ Strong Areas
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {safeStrongConcepts.map((concept, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-300 text-sm border border-emerald-500/20"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-200 text-sm border border-emerald-500/30"
                     >
                       {concept}
                     </span>
@@ -205,14 +205,14 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
             {/* Weak Concepts */}
             {hasData(safeWeakConcepts) && (
               <div className="space-y-3">
-                <div className="text-sm font-semibold text-orange-400 uppercase tracking-wider">
+                <div className="text-sm font-semibold text-orange-300 uppercase tracking-wider">
                   ⚡ Focus Areas
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {safeWeakConcepts.map((concept, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-300 text-sm border border-orange-500/20"
+                      className="px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-200 text-sm border border-orange-500/30"
                     >
                       {concept}
                     </span>
@@ -233,14 +233,14 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
       >
         <button
           onClick={() => window.history.back()}
-          className="px-8 py-3 rounded-lg bg-slate-800/60 text-white hover:bg-slate-700/60 border border-slate-700/50 hover:border-slate-600/50 transition-all font-medium"
+          className="px-8 py-3 rounded-lg bg-slate-800/80 text-white hover:bg-slate-700/80 border border-slate-600 hover:border-slate-500 transition-all font-medium backdrop-blur-sm"
         >
           Back to Dashboard
         </button>
         {onContinue && (
           <button
             onClick={onContinue}
-            className="px-8 py-3 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700 transition-all font-medium shadow-lg shadow-indigo-500/20"
+            className="px-8 py-3 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 transition-all font-medium shadow-lg"
           >
             Continue Learning
           </button>
@@ -254,8 +254,8 @@ export function LearningGainDisplay({ data, onContinue }: LearningGainDisplayPro
         transition={{ delay: 1 }}
         className="text-center"
       >
-        <p className="text-sm text-slate-500 max-w-2xl mx-auto leading-relaxed">
-          Learning gain measures your improvement from pre-test to post-test. 
+        <p className="text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed">
+          Learning gain measures your improvement from pre-test to post-test.
           It reflects how much you've learned through the study materials and practice.
         </p>
       </motion.div>

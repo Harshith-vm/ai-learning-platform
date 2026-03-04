@@ -13,19 +13,22 @@ interface FlashcardData {
 
 interface FlashcardPlayerProps {
   documentId: string;
+  flashcardsData?: FlashcardData[];
 }
 
-export function FlashcardPlayer({ documentId }: FlashcardPlayerProps) {
-  const [flashcards, setFlashcards] = useState<FlashcardData[]>([]);
+export function FlashcardPlayer({ documentId, flashcardsData }: FlashcardPlayerProps) {
+  const [flashcards, setFlashcards] = useState<FlashcardData[]>(flashcardsData || []);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!flashcardsData);
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    fetchFlashcards();
-  }, [documentId]);
+    if (!flashcardsData) {
+      fetchFlashcards();
+    }
+  }, [documentId, flashcardsData]);
 
   const handleFlip = useCallback(() => {
     if (!isAnimating) {
@@ -192,7 +195,7 @@ export function FlashcardPlayer({ documentId }: FlashcardPlayerProps) {
             className="h-full bg-gradient-to-r from-primary via-secondary to-primary"
             initial={{ width: 0 }}
             animate={{ width: `${progress}%` }}
-            transition={{ 
+            transition={{
               type: "spring",
               stiffness: 120,
               damping: 18
@@ -208,7 +211,7 @@ export function FlashcardPlayer({ documentId }: FlashcardPlayerProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          transition={{ 
+          transition={{
             type: "spring",
             stiffness: 300,
             damping: 30

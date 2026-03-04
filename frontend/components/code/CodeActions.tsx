@@ -1,12 +1,16 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { 
-  Lightbulb, 
-  Sparkles, 
-  BarChart3, 
+import {
+  Lightbulb,
+  Sparkles,
+  BarChart3,
   RefreshCw,
-  Loader2 
+  Loader2,
+  ListOrdered,
+  Building2,
+  GitCompare,
+  Award,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,8 +19,13 @@ interface CodeActionsProps {
   onImprove: () => void;
   onAnalyzeComplexity: () => void;
   onRefactor: () => void;
+  onStepwise: () => void;
+  onArchitecture: () => void;
+  onRefactorImpact: () => void;
+  onQuality: () => void;
   loading?: boolean;
   disabled?: boolean;
+  refactorComplete?: boolean;
 }
 
 export function CodeActions({
@@ -24,8 +33,13 @@ export function CodeActions({
   onImprove,
   onAnalyzeComplexity,
   onRefactor,
+  onStepwise,
+  onArchitecture,
+  onRefactorImpact,
+  onQuality,
   loading = false,
   disabled = false,
+  refactorComplete = false,
 }: CodeActionsProps) {
   const actions = [
     {
@@ -33,28 +47,56 @@ export function CodeActions({
       icon: Lightbulb,
       onClick: onExplain,
       gradient: "from-blue-600 to-cyan-600",
-      hoverGradient: "from-blue-700 to-cyan-700",
+      disabled: false,
     },
     {
       label: "Improve Code",
       icon: Sparkles,
       onClick: onImprove,
       gradient: "from-purple-600 to-pink-600",
-      hoverGradient: "from-purple-700 to-pink-700",
+      disabled: false,
     },
     {
       label: "Analyze Complexity",
       icon: BarChart3,
       onClick: onAnalyzeComplexity,
       gradient: "from-emerald-600 to-teal-600",
-      hoverGradient: "from-emerald-700 to-teal-700",
+      disabled: false,
     },
     {
       label: "Refactor Code",
       icon: RefreshCw,
       onClick: onRefactor,
       gradient: "from-orange-600 to-red-600",
-      hoverGradient: "from-orange-700 to-red-700",
+      disabled: false,
+    },
+    {
+      label: "Stepwise Explanation",
+      icon: ListOrdered,
+      onClick: onStepwise,
+      gradient: "from-indigo-600 to-blue-600",
+      disabled: false,
+    },
+    {
+      label: "Architecture Analysis",
+      icon: Building2,
+      onClick: onArchitecture,
+      gradient: "from-violet-600 to-purple-600",
+      disabled: false,
+    },
+    {
+      label: "Refactor Impact",
+      icon: GitCompare,
+      onClick: onRefactorImpact,
+      gradient: "from-amber-600 to-orange-600",
+      disabled: false,
+    },
+    {
+      label: "Code Quality",
+      icon: Award,
+      onClick: onQuality,
+      gradient: "from-green-600 to-emerald-600",
+      disabled: false,
     },
   ];
 
@@ -62,19 +104,21 @@ export function CodeActions({
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
       {actions.map((action, index) => {
         const Icon = action.icon;
+        const isDisabled = disabled || loading || action.disabled;
+
         return (
           <motion.button
             key={action.label}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ 
+            transition={{
               type: "spring",
               stiffness: 200,
               damping: 22,
               delay: index * 0.05
             }}
             onClick={action.onClick}
-            disabled={disabled || loading}
+            disabled={isDisabled}
             className={cn(
               "group relative px-6 py-4 rounded-xl font-medium text-sm transition-all",
               "border border-slate-700/50 hover:border-slate-600/50",

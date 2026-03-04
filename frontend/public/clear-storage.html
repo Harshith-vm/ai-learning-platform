@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Storage</title>
+</head>
+<body>
+    <h1>Clear SessionStorage</h1>
+    <button onclick="clearStorage()">Clear SessionStorage</button>
+    <p id="result"></p>
+    
+    <script>
+        function clearStorage() {
+            sessionStorage.clear();
+            document.getElementById('result').textContent = 'SessionStorage cleared! You can close this tab and refresh your app.';
+        }
+    </script>
+</body>
+</html>
