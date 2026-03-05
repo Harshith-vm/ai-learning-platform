@@ -23,6 +23,10 @@ from app.schemas.code_stepwise import CodeStepwiseResponse
 from app.schemas.code_architecture import CodeArchitectureResponse
 from app.schemas.code_refactor_impact import RefactorImpactResponse
 from app.schemas.code_quality import CodeQualityResponse
+from app.schemas.code_detect_blocks import DetectBlocksRequest, DetectBlocksResponse
+from app.schemas.code_pr_review import PRReviewRequest, PRReviewResponse
+from app.schemas.code_inline_explain import InlineExplainRequest, InlineExplainResponse
+from app.schemas.code_convert import CodeConvertRequest, CodeConvertResponse
 from app.services.summary_service import generate_summary
 from app.services.mcq_service import generate_mcqs as generate_text_mcqs
 from pydantic import BaseModel
@@ -49,6 +53,7 @@ from app.services.learning_gain_service import (
 )
 from app.services.code_session_service import store_code_session, explain_code, improve_code, analyze_complexity, refactor_code, explain_code_stepwise, analyze_architecture, compare_refactor_impact, evaluate_code_quality
 from app.services.code_generation_service import generate_code
+from app.services.code_tools_service import detect_code_blocks, review_pull_request, explain_code_inline, convert_code
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -790,4 +795,76 @@ async def evaluate_code_quality_endpoint(session_id: str):
         HTTPException: If session not found or evaluation fails
     """
     result = await evaluate_code_quality(session_id)
+    return result
+
+
+@app.post("/code/detect-blocks", response_model=DetectBlocksResponse)
+async def detect_code_blocks_endpoint(request: DetectBlocksRequest):
+    """
+    Detect and extract code blocks from webpage content.
+    
+    Args:
+        request: DetectBlocksRequest with page content
+        
+    Returns:
+        DetectBlocksResponse with list of detected code blocks
+        
+    Raises:
+        HTTPException: If detection fails
+    """
+    result = await detect_code_blocks(request.page_content)
+    return result
+
+
+@app.post("/code/pr-review", response_model=PRReviewResponse)
+async def review_pull_request_endpoint(request: PRReviewRequest):
+    """
+    Analyze a pull request diff and provide review feedback.
+    
+    Args:
+        request: PRReviewRequest with code diff and language
+        
+    Returns:
+        PRReviewResponse with summary, issues, and suggestions
+        
+    Raises:
+        HTTPException: If review fails
+    """
+    result = await review_pull_request(request.code_diff, request.language)
+    return result
+
+
+@app.post("/code/inline-explain", response_model=InlineExplainResponse)
+async def explain_code_inline_endpoint(request: InlineExplainRequest):
+    """
+    Generate line-by-line explanation of code.
+    
+    Args:
+        request: InlineExplainRequest with code and language
+        
+    Returns:
+        InlineExplainResponse with line-by-line explanations
+        
+    Raises:
+        HTTPException: If explanation fails
+    """
+    result = await explain_code_inline(request.code, request.language)
+    return result
+
+
+@app.post("/code/convert", response_model=CodeConvertResponse)
+async def convert_code_endpoint(request: CodeConvertRequest):
+    """
+    Convert code from one programming language to another.
+    
+    Args:
+        request: CodeConvertRequest with source code, source language, and target language
+        
+    Returns:
+        CodeConvertResponse with converted code
+        
+    Raises:
+        HTTPException: If conversion fails
+    """
+    result = await convert_code(request.source_code, request.source_language, request.target_language)
     return result
