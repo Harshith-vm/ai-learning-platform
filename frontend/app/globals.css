@@ -1,0 +1,191 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Theme Variables */
+:root {
+  /* Light Theme (Default) - High Contrast, Crystal Clear */
+  --background: 249 250 251; /* Soft off-white */
+  --foreground: 17 24 39; /* Near black for maximum readability */
+  
+  --card: 255 255 255; /* Pure white cards */
+  --card-foreground: 17 24 39;
+  
+  --primary: 79 70 229; /* Vibrant indigo */
+  --primary-foreground: 255 255 255;
+  
+  --secondary: 147 51 234; /* Vibrant purple */
+  --secondary-foreground: 255 255 255;
+  
+  --muted: 243 244 246; /* Light gray */
+  --muted-foreground: 75 85 99; /* Medium gray text */
+  
+  --accent: 238 242 255; /* Light indigo tint */
+  --accent-foreground: 17 24 39;
+  
+  --border: 229 231 235; /* Clear borders */
+  --input: 229 231 235;
+  
+  --success: 22 163 74; /* Vibrant green */
+  --success-foreground: 255 255 255;
+  
+  --error: 220 38 38; /* Vibrant red */
+  --error-foreground: 255 255 255;
+  
+  --warning: 234 88 12; /* Vibrant orange */
+  --warning-foreground: 255 255 255;
+  
+  --ring: 79 70 229;
+  
+  --radius: 0.5rem;
+}
+
+html[data-theme="dark"] {
+  /* Dark Theme - Premium, High Contrast */
+  --background: 15 23 42; /* Deep slate */
+  --foreground: 248 250 252; /* Near white */
+  
+  --card: 30 41 59; /* Elevated slate */
+  --card-foreground: 248 250 252;
+  
+  --primary: 129 140 248; /* Bright indigo */
+  --primary-foreground: 15 23 42;
+  
+  --secondary: 192 132 252; /* Bright purple */
+  --secondary-foreground: 15 23 42;
+  
+  --muted: 51 65 85; /* Medium slate */
+  --muted-foreground: 148 163 184; /* Light slate text */
+  
+  --accent: 51 65 85;
+  --accent-foreground: 248 250 252;
+  
+  --border: 51 65 85;
+  --input: 51 65 85;
+  
+  --success: 34 197 94; /* Bright green */
+  --success-foreground: 15 23 42;
+  
+  --error: 239 68 68; /* Bright red */
+  --error-foreground: 255 255 255;
+  
+  --warning: 251 146 60; /* Bright orange */
+  --warning-foreground: 15 23 42;
+  
+  --ring: 129 140 248;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* 3D Flip Animation for Flashcards */
+.flashcard-container {
+  perspective: 1400px;
+  cursor: pointer;
+  width: 100%;
+  min-height: 400px;
+}
+
+.flashcard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  transform-style: preserve-3d;
+}
+
+.flashcard-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 1rem;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+}
+
+.flashcard-front {
+  background: linear-gradient(135deg, rgb(var(--card)) 0%, rgb(var(--accent)) 100%);
+  border: 2px solid rgb(var(--border));
+}
+
+.flashcard-back {
+  background: linear-gradient(135deg, rgb(var(--accent)) 0%, rgb(var(--card)) 100%);
+  border: 2px solid rgb(var(--primary) / 0.3);
+  transform: rotateY(180deg);
+}
+
+/* Light theme specific flashcard styles */
+:root .flashcard-front {
+  background: linear-gradient(135deg, #ffffff 0%, #eef2ff 100%);
+  border: 2px solid #e5e7eb;
+}
+
+:root .flashcard-back {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+  border: 2px solid #86efac;
+}
+
+/* Dark theme specific flashcard styles */
+html[data-theme="dark"] .flashcard-front {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.8) 100%);
+  border: 2px solid rgba(100, 116, 139, 0.3);
+}
+
+html[data-theme="dark"] .flashcard-back {
+  background: linear-gradient(135deg, rgba(51, 65, 85, 0.8) 0%, rgba(30, 41, 59, 0.95) 100%);
+  border: 2px solid rgba(129, 140, 248, 0.3);
+}
+
+/* Hover effect */
+.flashcard-container:hover .flashcard-face {
+  box-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+/* Flip card legacy support (if needed) */
+.flip-card {
+  perspective: 1400px;
+}
+
+.flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.6s;
+  transform-style: preserve-3d;
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}

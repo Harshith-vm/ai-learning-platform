@@ -1,0 +1,17 @@
+# Additional dependencies for Task 68: Email/Password Login System
+# and Task 69: JWT Token Authentication
+
+# Database ORM
+sqlalchemy>=2.0.0
+
+# Password hashing
+passlib[bcrypt]>=1.7.4
+
+# Email validation
+email-validator>=2.0.0
+
+# JWT token handling (Task 69)
+python-jose[cryptography]>=3.3.0
+
+# Note: Add these to your main requirements.txt file
+# Installation: pip install -r requirements_auth.txt
