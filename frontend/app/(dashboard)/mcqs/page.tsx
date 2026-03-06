@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { MCQPlayer } from "@/components/mcq/MCQPlayer";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { apiRequest } from "@/lib/api";
 
 export default function MCQsPage() {
   const router = useRouter();
@@ -24,19 +25,12 @@ export default function MCQsPage() {
     setError("");
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/mcqs/${documentId}`,
+      const data = await apiRequest<{ mcqs: any[] }>(
+        `/mcqs/${documentId}`,
         {
           method: "POST",
         }
       );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to generate MCQs");
-      }
-
-      const data = await response.json();
 
       // Backend returns the correct format, use it directly
       setMcqs(data.mcqs);
@@ -56,20 +50,10 @@ export default function MCQsPage() {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/generate-mcqs", {
+      const data = await apiRequest<{ mcqs: any[] }>("/generate-mcqs", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ text: pastedContent }),
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to generate MCQs");
-      }
-
-      const data = await response.json();
 
       // Transform the data if it's in the text MCQ format (options as strings)
       const normalizedMcqs = data.mcqs.map((mcq: any) => {

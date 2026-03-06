@@ -16,6 +16,8 @@ const pageTitles: Record<string, string> = {
   "/mcqs": "Generate MCQs",
   "/code": "Code Intelligence",
   "/simplify": "Simplify Concepts",
+  "/profile": "User Profile",
+  "/history": "History",
 };
 
 export default function DashboardLayout({

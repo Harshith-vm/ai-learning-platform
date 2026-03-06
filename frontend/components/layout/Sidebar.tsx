@@ -17,6 +17,8 @@ import {
   TrendingUp,
   Layers,
   Wand2,
+  User,
+  History,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,8 @@ const navItems: NavItem[] = [
   { label: "Code", href: "/code", icon: Code2 },
   { label: "Code Generator", href: "/code-generator", icon: Wand2 },
   { label: "Simplify", href: "/simplify", icon: Lightbulb },
+  { label: "History", href: "/history", icon: History },
+  { label: "Profile", href: "/profile", icon: User },
 ];
 
 export function Sidebar() {

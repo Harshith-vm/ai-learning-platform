@@ -495,9 +495,8 @@ async def create_flashcards(
     # Convert flashcards to dict format for JSON serialization
     flashcards_data = [
         {
-            "front": fc.front,
-            "back": fc.back,
-            "difficulty": fc.difficulty
+            "question": fc.question,
+            "answer": fc.answer
         }
         for fc in flashcards.flashcards
     ]

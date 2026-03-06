@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { FlashcardPlayer } from "@/components/flashcards/FlashcardPlayer";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { apiRequest } from "@/lib/api";
 
 export default function FlashcardsPage() {
     const router = useRouter();
@@ -16,25 +17,22 @@ export default function FlashcardsPage() {
     const [error, setError] = useState<string>("");
 
     const fetchFlashcards = async () => {
-        if (!documentId) return;
+        if (!documentId) {
+            setError("No document uploaded. Please upload a document first.");
+            return;
+        }
 
         setLoading(true);
         setError("");
 
         try {
-            const response = await fetch(
-                `http://127.0.0.1:8000/flashcards/${documentId}`,
+            const data = await apiRequest<{ flashcards: any[] }>(
+                `/flashcards/${documentId}`,
                 {
                     method: "POST",
                 }
             );
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || "Failed to generate flashcards");
-            }
-
-            const data = await response.json();
             setFlashcards(data.flashcards || []);
         } catch (err) {
             setError(
