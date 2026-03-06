@@ -1,5 +1,6 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Code2, ListOrdered, Building2, GitCompare, Award } from "lucide-react";
@@ -388,260 +389,262 @@ export default function CodePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 py-8 px-6">
-      <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            type: "spring",
-            stiffness: 200,
-            damping: 22
-          }}
-          className="text-center space-y-3"
-        >
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
-              <Code2 className="w-6 h-6 text-white" />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 py-8 px-6">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 22
+            }}
+            className="text-center space-y-3"
+          >
+            <div className="flex items-center justify-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <Code2 className="w-6 h-6 text-white" />
+              </div>
+              <h1 className="text-4xl font-bold text-white tracking-tight">
+                AI Code Assistant
+              </h1>
             </div>
-            <h1 className="text-4xl font-bold text-white tracking-tight">
-              AI Code Assistant
-            </h1>
-          </div>
-          <p className="text-slate-400 max-w-2xl mx-auto">
-            Write or paste your code below. Use AI-powered tools to explain, improve, analyze, and refactor.
-          </p>
-        </motion.div>
+            <p className="text-slate-400 max-w-2xl mx-auto">
+              Write or paste your code below. Use AI-powered tools to explain, improve, analyze, and refactor.
+            </p>
+          </motion.div>
 
-        {/* Editor */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            type: "spring",
-            stiffness: 200,
-            damping: 22,
-            delay: 0.1
-          }}
-        >
-          <CodeEditor
-            value={code}
-            onChange={handleCodeChange}
-            language="javascript"
-          />
-        </motion.div>
-
-        {/* Action Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            type: "spring",
-            stiffness: 200,
-            damping: 22,
-            delay: 0.2
-          }}
-        >
-          <CodeActions
-            onExplain={handleExplain}
-            onImprove={handleImprove}
-            onAnalyzeComplexity={handleAnalyzeComplexity}
-            onRefactor={handleRefactor}
-            onStepwise={handleStepwise}
-            onArchitecture={handleArchitecture}
-            onRefactorImpact={handleRefactorImpact}
-            onQuality={handleQuality}
-            loading={loading}
-            disabled={!code.trim()}
-            refactorComplete={refactorComplete}
-          />
-        </motion.div>
-
-        {/* Error Message */}
-        {error && (
+          {/* Editor */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 text-center"
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 22,
+              delay: 0.1
+            }}
           >
-            {error}
+            <CodeEditor
+              value={code}
+              onChange={handleCodeChange}
+              language="javascript"
+            />
           </motion.div>
-        )}
 
-        {/* Results Panel */}
-        <AnimatePresence mode="wait">
-          {loading && (
-            <ResultSkeleton key="skeleton" />
-          )}
-
-          {!loading && activeAnalysis === "explain" && analysisData.explanation && (
-            <CodeExplanation
-              key="explanation"
-              explanation={analysisData.explanation.explanation}
-              keyPoints={analysisData.explanation.keyPoints}
-            />
-          )}
-
-          {!loading && activeAnalysis === "improve" && analysisData.improvements && (
-            <CodeImprovements
-              key="improvements"
-              improvements={analysisData.improvements.improvements}
-              summary={analysisData.improvements.summary}
-            />
-          )}
-
-          {!loading && activeAnalysis === "complexity" && analysisData.complexity && (
-            <CodeComplexity
-              key="complexity"
-              timeComplexity={analysisData.complexity.timeComplexity}
-              spaceComplexity={analysisData.complexity.spaceComplexity}
-              summary={analysisData.complexity.summary}
-            />
-          )}
-
-          {!loading && activeAnalysis === "refactor" && analysisData.refactor && (
-            <CodeRefactor
-              key="refactor"
-              originalCode={analysisData.refactor.originalCode}
-              refactoredCode={analysisData.refactor.refactoredCode}
-              improvements={analysisData.refactor.improvements}
-              summary={analysisData.refactor.summary}
-            />
-          )}
-
-          {!loading && activeAnalysis === "stepwise" && analysisData.stepwise && (
-            <motion.div
-              key="stepwise"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
-            >
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <ListOrdered className="w-5 h-5 text-indigo-400" />
-                Stepwise Explanation
-              </h3>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {analysisData.stepwise.explanation}
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {!loading && activeAnalysis === "architecture" && analysisData.architecture && (
-            <motion.div
-              key="architecture"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
-            >
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-violet-400" />
-                Architecture Analysis
-              </h3>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {analysisData.architecture.analysis}
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {!loading && activeAnalysis === "refactor-impact" && analysisData.refactorImpact && (
-            <motion.div
-              key="refactor-impact"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
-            >
-              <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-                <GitCompare className="w-5 h-5 text-amber-400" />
-                Refactor Impact Comparison
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div className="bg-slate-800/50 rounded-lg p-4">
-                  <p className="text-sm text-slate-400 mb-2">Original Complexity</p>
-                  <p className="text-2xl font-bold text-red-400">
-                    {analysisData.refactorImpact.originalComplexity}
-                  </p>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-4">
-                  <p className="text-sm text-slate-400 mb-2">Refactored Complexity</p>
-                  <p className="text-2xl font-bold text-green-400">
-                    {analysisData.refactorImpact.refactoredComplexity}
-                  </p>
-                </div>
-              </div>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {analysisData.refactorImpact.summary}
-                </p>
-              </div>
-            </motion.div>
-          )}
-
-          {!loading && activeAnalysis === "quality" && analysisData.quality && (
-            <motion.div
-              key="quality"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
-            >
-              <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-                <Award className="w-5 h-5 text-green-400" />
-                Code Quality Evaluation
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-slate-400 mb-2">Readability</p>
-                  <p className="text-3xl font-bold text-blue-400">{analysisData.quality.readability}</p>
-                  <p className="text-xs text-slate-500 mt-1">/10</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-slate-400 mb-2">Efficiency</p>
-                  <p className="text-3xl font-bold text-green-400">{analysisData.quality.efficiency}</p>
-                  <p className="text-xs text-slate-500 mt-1">/10</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-slate-400 mb-2">Maintainability</p>
-                  <p className="text-3xl font-bold text-purple-400">{analysisData.quality.maintainability}</p>
-                  <p className="text-xs text-slate-500 mt-1">/10</p>
-                </div>
-                <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-                  <p className="text-sm text-slate-400 mb-2">Overall</p>
-                  <p className="text-3xl font-bold text-amber-400">{analysisData.quality.overall}</p>
-                  <p className="text-xs text-slate-500 mt-1">/10</p>
-                </div>
-              </div>
-              <div className="prose prose-invert max-w-none">
-                <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
-                  {analysisData.quality.summary}
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Info Footer */}
-        {!loading && !activeAnalysis && (
+          {/* Action Buttons */}
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 22,
+              delay: 0.2
+            }}
           >
-            <p className="text-sm text-slate-500">
-              Supports JavaScript, TypeScript, Python, and more.
-              AI analysis powered by advanced language models.
-            </p>
+            <CodeActions
+              onExplain={handleExplain}
+              onImprove={handleImprove}
+              onAnalyzeComplexity={handleAnalyzeComplexity}
+              onRefactor={handleRefactor}
+              onStepwise={handleStepwise}
+              onArchitecture={handleArchitecture}
+              onRefactorImpact={handleRefactorImpact}
+              onQuality={handleQuality}
+              loading={loading}
+              disabled={!code.trim()}
+              refactorComplete={refactorComplete}
+            />
           </motion.div>
-        )}
+
+          {/* Error Message */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 text-red-400 text-center"
+            >
+              {error}
+            </motion.div>
+          )}
+
+          {/* Results Panel */}
+          <AnimatePresence mode="wait">
+            {loading && (
+              <ResultSkeleton key="skeleton" />
+            )}
+
+            {!loading && activeAnalysis === "explain" && analysisData.explanation && (
+              <CodeExplanation
+                key="explanation"
+                explanation={analysisData.explanation.explanation}
+                keyPoints={analysisData.explanation.keyPoints}
+              />
+            )}
+
+            {!loading && activeAnalysis === "improve" && analysisData.improvements && (
+              <CodeImprovements
+                key="improvements"
+                improvements={analysisData.improvements.improvements}
+                summary={analysisData.improvements.summary}
+              />
+            )}
+
+            {!loading && activeAnalysis === "complexity" && analysisData.complexity && (
+              <CodeComplexity
+                key="complexity"
+                timeComplexity={analysisData.complexity.timeComplexity}
+                spaceComplexity={analysisData.complexity.spaceComplexity}
+                summary={analysisData.complexity.summary}
+              />
+            )}
+
+            {!loading && activeAnalysis === "refactor" && analysisData.refactor && (
+              <CodeRefactor
+                key="refactor"
+                originalCode={analysisData.refactor.originalCode}
+                refactoredCode={analysisData.refactor.refactoredCode}
+                improvements={analysisData.refactor.improvements}
+                summary={analysisData.refactor.summary}
+              />
+            )}
+
+            {!loading && activeAnalysis === "stepwise" && analysisData.stepwise && (
+              <motion.div
+                key="stepwise"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
+              >
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <ListOrdered className="w-5 h-5 text-indigo-400" />
+                  Stepwise Explanation
+                </h3>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {analysisData.stepwise.explanation}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {!loading && activeAnalysis === "architecture" && analysisData.architecture && (
+              <motion.div
+                key="architecture"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
+              >
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-violet-400" />
+                  Architecture Analysis
+                </h3>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {analysisData.architecture.analysis}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {!loading && activeAnalysis === "refactor-impact" && analysisData.refactorImpact && (
+              <motion.div
+                key="refactor-impact"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
+              >
+                <h3 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                  <GitCompare className="w-5 h-5 text-amber-400" />
+                  Refactor Impact Comparison
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="bg-slate-800/50 rounded-lg p-4">
+                    <p className="text-sm text-slate-400 mb-2">Original Complexity</p>
+                    <p className="text-2xl font-bold text-red-400">
+                      {analysisData.refactorImpact.originalComplexity}
+                    </p>
+                  </div>
+                  <div className="bg-slate-800/50 rounded-lg p-4">
+                    <p className="text-sm text-slate-400 mb-2">Refactored Complexity</p>
+                    <p className="text-2xl font-bold text-green-400">
+                      {analysisData.refactorImpact.refactoredComplexity}
+                    </p>
+                  </div>
+                </div>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {analysisData.refactorImpact.summary}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {!loading && activeAnalysis === "quality" && analysisData.quality && (
+              <motion.div
+                key="quality"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-8"
+              >
+                <h3 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
+                  <Award className="w-5 h-5 text-green-400" />
+                  Code Quality Evaluation
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-slate-400 mb-2">Readability</p>
+                    <p className="text-3xl font-bold text-blue-400">{analysisData.quality.readability}</p>
+                    <p className="text-xs text-slate-500 mt-1">/10</p>
+                  </div>
+                  <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-slate-400 mb-2">Efficiency</p>
+                    <p className="text-3xl font-bold text-green-400">{analysisData.quality.efficiency}</p>
+                    <p className="text-xs text-slate-500 mt-1">/10</p>
+                  </div>
+                  <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-slate-400 mb-2">Maintainability</p>
+                    <p className="text-3xl font-bold text-purple-400">{analysisData.quality.maintainability}</p>
+                    <p className="text-xs text-slate-500 mt-1">/10</p>
+                  </div>
+                  <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                    <p className="text-sm text-slate-400 mb-2">Overall</p>
+                    <p className="text-3xl font-bold text-amber-400">{analysisData.quality.overall}</p>
+                    <p className="text-xs text-slate-500 mt-1">/10</p>
+                  </div>
+                </div>
+                <div className="prose prose-invert max-w-none">
+                  <p className="text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    {analysisData.quality.summary}
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Info Footer */}
+          {!loading && !activeAnalysis && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-center"
+            >
+              <p className="text-sm text-slate-500">
+                Supports JavaScript, TypeScript, Python, and more.
+                AI analysis powered by advanced language models.
+              </p>
+            </motion.div>
+          )}
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

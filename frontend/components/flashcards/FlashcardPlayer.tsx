@@ -5,6 +5,7 @@ import { Flashcard } from "./Flashcard";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/api";
 
 interface FlashcardData {
   question: string;
@@ -85,18 +86,13 @@ export function FlashcardPlayer({ documentId, flashcardsData }: FlashcardPlayerP
     setError("");
 
     try {
-      const response = await fetch(
-        `http://127.0.0.1:8000/flashcards/${documentId}`,
+      const data = await apiRequest<{ flashcards: FlashcardData[] }>(
+        `/flashcards/${documentId}`,
         {
           method: "POST",
         }
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to generate flashcards");
-      }
-
-      const data = await response.json();
       setFlashcards(data.flashcards);
     } catch (err) {
       setError(

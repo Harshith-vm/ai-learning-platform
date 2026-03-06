@@ -1,5 +1,6 @@
 "use client";
 
+import ProtectedRoute from "@/components/ProtectedRoute";
 import { usePersona } from "@/contexts/PersonaContext";
 import { FeatureCard } from "@/components/dashboard/FeatureCard";
 import {
@@ -139,92 +140,94 @@ export default function DashboardPage() {
   const message = welcomeMessages[persona];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 py-8 px-6">
-      <div className="space-y-8">
-        {/* Hero Section */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            type: "spring",
-            stiffness: 200,
-            damping: 22
-          }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-500 via-purple-500 to-secondary-500 p-8 lg:p-12 text-white"
-        >
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-4">
-              <Sparkles className="w-8 h-8" />
-              <h1 className="text-3xl lg:text-4xl font-bold">{message.greeting}</h1>
-            </div>
-            <p className="text-lg text-white/90 max-w-2xl leading-relaxed">
-              {message.subtitle}
-            </p>
-          </div>
-
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
-        </motion.div>
-
-        {/* Feature Cards Grid */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            type: "spring",
-            stiffness: 200,
-            damping: 22,
-            delay: 0.1
-          }}
-        >
-          <h2 className="text-xl font-semibold text-white mb-6">
-            Explore Features
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature, index) => (
-              <FeatureCard
-                key={feature.title}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.descriptions[persona]}
-                gradient={feature.gradient}
-                route={feature.route}
-                delay={index * 0.1}
-              />
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Stats Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{
-            type: "spring",
-            stiffness: 200,
-            damping: 22,
-            delay: 0.2
-          }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
-        >
-          {[
-            { label: "Documents Processed", value: "0" },
-            { label: "Flashcards Created", value: "0" },
-            { label: "MCQs Generated", value: "0" },
-          ].map((stat) => (
-            <div
-              key={stat.label}
-              className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-6 text-center"
-            >
-              <div className="text-3xl font-bold text-indigo-400 mb-2">
-                {stat.value}
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-900 py-8 px-6">
+        <div className="space-y-8">
+          {/* Hero Section */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 22
+            }}
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-500 via-purple-500 to-secondary-500 p-8 lg:p-12 text-white"
+          >
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-4">
+                <Sparkles className="w-8 h-8" />
+                <h1 className="text-3xl lg:text-4xl font-bold">{message.greeting}</h1>
               </div>
-              <div className="text-sm text-slate-300">{stat.label}</div>
+              <p className="text-lg text-white/90 max-w-2xl leading-relaxed">
+                {message.subtitle}
+              </p>
             </div>
-          ))}
-        </motion.div>
+
+            {/* Decorative Elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
+          </motion.div>
+
+          {/* Feature Cards Grid */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 22,
+              delay: 0.1
+            }}
+          >
+            <h2 className="text-xl font-semibold text-white mb-6">
+              Explore Features
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {features.map((feature, index) => (
+                <FeatureCard
+                  key={feature.title}
+                  icon={feature.icon}
+                  title={feature.title}
+                  description={feature.descriptions[persona]}
+                  gradient={feature.gradient}
+                  route={feature.route}
+                  delay={index * 0.1}
+                />
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Stats Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{
+              type: "spring",
+              stiffness: 200,
+              damping: 22,
+              delay: 0.2
+            }}
+            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          >
+            {[
+              { label: "Documents Processed", value: "0" },
+              { label: "Flashcards Created", value: "0" },
+              { label: "MCQs Generated", value: "0" },
+            ].map((stat) => (
+              <div
+                key={stat.label}
+                className="bg-slate-900/60 backdrop-blur-md border border-slate-700 rounded-xl p-6 text-center"
+              >
+                <div className="text-3xl font-bold text-indigo-400 mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-sm text-slate-300">{stat.label}</div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

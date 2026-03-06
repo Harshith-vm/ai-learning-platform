@@ -2,8 +2,10 @@
 
 import { usePersona } from "@/contexts/PersonaContext";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ChevronDown, User, Sun, Moon } from "lucide-react";
+import { ChevronDown, User, Sun, Moon, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { logout } from "@/lib/auth";
+import Link from "next/link";
 
 interface HeaderProps {
   title: string;
@@ -46,6 +48,16 @@ export function Header({ title }: HeaderProps) {
             )}
           </button>
 
+          {/* Logout Button */}
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 transition-colors text-sm font-medium"
+            aria-label="Logout"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Logout</span>
+          </button>
+
           {/* Persona Indicator */}
           <div className="relative group">
             <button
@@ -77,10 +89,14 @@ export function Header({ title }: HeaderProps) {
             </div>
           </div>
 
-          {/* User Avatar */}
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
+          {/* User Avatar - Click to go to Profile */}
+          <Link
+            href="/profile"
+            className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center hover:opacity-80 transition-opacity cursor-pointer"
+            title="View Profile"
+          >
             <User className="w-5 h-5 text-white" />
-          </div>
+          </Link>
         </div>
       </div>
     </header>
