@@ -1,7 +1,8 @@
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Query
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, Query, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from typing import Optional
+from sqlalchemy.orm import Session
 from app.core.llm import call_llm
 from app.schemas.requests import TextInput, ConceptRequest
 from app.schemas.summary import SummaryResponse
@@ -54,8 +55,15 @@ from app.services.learning_gain_service import (
 from app.services.code_session_service import store_code_session, explain_code, improve_code, analyze_complexity, refactor_code, explain_code_stepwise, analyze_architecture, compare_refactor_impact, evaluate_code_quality
 from app.services.code_generation_service import generate_code
 from app.services.code_tools_service import detect_code_blocks, review_pull_request, explain_code_inline, convert_code
+from app.routers.auth_router import router as auth_router
+from app.database import engine, Base, get_db
+from app.services.auth_dependency import get_current_user
+from app.models import User, SummaryHistory
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
+
+# Create database tables
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="AI Learning Platform", version="1.0.0")
 
@@ -70,6 +78,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register routers
+app.include_router(auth_router)
 
 # Global Exception Handlers
 
@@ -130,21 +141,39 @@ async def test_llm():
 
 
 @app.post("/generate-summary", response_model=SummaryResponse)
-async def create_summary(request: TextInput):
+async def create_summary(
+    request: TextInput,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Generate a structured summary from input text.
+    Generate a structured summary from input text and save to user's history.
     
     Args:
         request: TextInput containing the text to summarize
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         SummaryResponse with title, summary, and key points
         
     Raises:
         HTTPException: If summary generation fails
+        HTTPException 401: If authentication fails
     """
     try:
+        # Generate summary
         summary = await generate_summary(request.text)
+        
+        # Save to database
+        history_entry = SummaryHistory(
+            user_id=current_user.id,
+            original_text=request.text,
+            summary_text=summary.summary
+        )
+        db.add(history_entry)
+        db.commit()
+        
         return summary
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
