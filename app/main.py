@@ -56,9 +56,10 @@ from app.services.code_session_service import store_code_session, explain_code, 
 from app.services.code_generation_service import generate_code
 from app.services.code_tools_service import detect_code_blocks, review_pull_request, explain_code_inline, convert_code
 from app.routers.auth_router import router as auth_router
+from app.routers.history_router import router as history_router
 from app.database import engine, Base, get_db
 from app.services.auth_dependency import get_current_user
-from app.models import User, SummaryHistory
+from app.models import User, SummaryHistory, MCQSessionHistory, DocumentSummaryHistory, KeyPointsHistory, FlashcardHistory, LearningGainHistory, CodeAnalysisHistory, MCQHistory
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -81,6 +82,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(auth_router)
+app.include_router(history_router)
 
 # Global Exception Handlers
 
@@ -389,56 +391,125 @@ async def retrieve_document(document_id: str):
 
 
 @app.post("/summarize/{document_id}", response_model=DocumentSummaryResponse)
-async def create_document_summary(document_id: str):
+async def create_document_summary(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Generate a structured summary for a stored document.
+    Generate a structured summary for a stored document and save to user's history.
     
     Args:
         document_id: The unique document identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         DocumentSummaryResponse with title, summary, and main themes
         
     Raises:
         HTTPException: If document not found or summarization fails
+        HTTPException 401: If authentication fails
     """
+    # Generate summary
     summary = await summarize_document(document_id)
+    
+    # Save to database
+    import json
+    history_entry = DocumentSummaryHistory(
+        user_id=current_user.id,
+        document_id=document_id,
+        title=summary.title,
+        summary_text=summary.summary,
+        main_themes=json.dumps(summary.main_themes) if hasattr(summary, 'main_themes') and summary.main_themes else None
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return summary
 
 
 @app.post("/key-points/{document_id}", response_model=KeyPointsResponse)
-async def create_key_points(document_id: str):
+async def create_key_points(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Extract key points from a stored document.
+    Extract key points from a stored document and save to user's history.
     
     Args:
         document_id: The unique document identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         KeyPointsResponse with 5-10 clear key points
         
     Raises:
         HTTPException: If document not found or extraction fails
+        HTTPException 401: If authentication fails
     """
+    # Extract key points
     key_points = await extract_key_points(document_id)
+    
+    # Save to database
+    import json
+    history_entry = KeyPointsHistory(
+        user_id=current_user.id,
+        document_id=document_id,
+        key_points=json.dumps(key_points.key_points)
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return key_points
 
 
 @app.post("/flashcards/{document_id}", response_model=FlashcardResponse)
-async def create_flashcards(document_id: str):
+async def create_flashcards(
+    document_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Generate flashcards from a stored document.
+    Generate flashcards from a stored document and save to user's history.
     
     Args:
         document_id: The unique document identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         FlashcardResponse with 5-10 high-quality flashcards
         
     Raises:
         HTTPException: If document not found or generation fails
+        HTTPException 401: If authentication fails
     """
+    # Generate flashcards
     flashcards = await generate_flashcards(document_id)
+    
+    # Save to database
+    import json
+    # Convert flashcards to dict format for JSON serialization
+    flashcards_data = [
+        {
+            "front": fc.front,
+            "back": fc.back,
+            "difficulty": fc.difficulty
+        }
+        for fc in flashcards.flashcards
+    ]
+    
+    history_entry = FlashcardHistory(
+        user_id=current_user.id,
+        document_id=document_id,
+        flashcards=json.dumps(flashcards_data)
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return flashcards
 
 
@@ -528,21 +599,44 @@ async def create_mcq_feedback(document_id: str, request: MCQFeedbackRequest):
 
 
 @app.post("/mcq-session/{document_id}", response_model=MCQSessionResponse)
-async def create_mcq_session(document_id: str, request: MCQSessionRequest):
+async def create_mcq_session(
+    document_id: str,
+    request: MCQSessionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Evaluate a complete MCQ session and provide scoring.
+    Evaluate a complete MCQ session, provide scoring, and save to user's history.
     
     Args:
         document_id: The unique document identifier
         request: MCQSessionRequest with list of answers
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         MCQSessionResponse with total questions, correct answers, score percentage, and detailed results
         
     Raises:
         HTTPException: If document not found, MCQs not generated, or invalid indices
+        HTTPException 401: If authentication fails
     """
+    # Evaluate the MCQ session
     session_result = await evaluate_mcq_session(document_id, request)
+    
+    # Save to database
+    import json
+    history_entry = MCQSessionHistory(
+        user_id=current_user.id,
+        document_id=document_id,
+        total_questions=session_result.total_questions,
+        correct_answers=session_result.correct_answers,
+        score_percentage=session_result.score_percentage,
+        detailed_results=json.dumps(session_result.detailed_results)
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return session_result
 
 
@@ -565,21 +659,42 @@ async def create_pre_test(document_id: str):
 
 
 @app.post("/learning/pre-test/submit/{document_id}", response_model=MCQSessionResponse)
-async def submit_pre_test_answers(document_id: str, request: MCQSessionRequest):
+async def submit_pre_test_answers(
+    document_id: str,
+    request: MCQSessionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Submit and evaluate pre-test answers.
+    Submit and evaluate pre-test answers and save to user's history.
     
     Args:
         document_id: The unique document identifier
         request: MCQSessionRequest with answers
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         MCQSessionResponse with score
         
     Raises:
         HTTPException: If document not found or pre-test not generated
+        HTTPException 401: If authentication fails
     """
+    # Evaluate the test
     result = await submit_pre_test(document_id, request)
+    
+    # Save to database
+    history_entry = MCQHistory(
+        user_id=current_user.id,
+        document_id=document_id,
+        test_type="pre_test",
+        score=result.correct_answers,
+        total_questions=result.total_questions
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
@@ -602,21 +717,42 @@ async def create_post_test(document_id: str):
 
 
 @app.post("/learning/post-test/submit/{document_id}", response_model=LearningGainResponse)
-async def submit_post_test_answers(document_id: str, request: MCQSessionRequest):
+async def submit_post_test_answers(
+    document_id: str,
+    request: MCQSessionRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Submit and evaluate post-test answers, compute learning gain.
+    Submit and evaluate post-test answers, compute learning gain, and save to user's history.
     
     Args:
         document_id: The unique document identifier
         request: MCQSessionRequest with answers
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         LearningGainResponse with pre-score, post-score, and learning gain percentage
         
     Raises:
         HTTPException: If document not found, post-test not generated, or pre-test not completed
+        HTTPException 401: If authentication fails
     """
+    # Submit post-test and calculate learning gain
     result = await submit_post_test(document_id, request)
+    
+    # Save to database
+    history_entry = LearningGainHistory(
+        user_id=current_user.id,
+        document_id=document_id,
+        pre_test_score=result.pre_test_score,
+        post_test_score=result.post_test_score,
+        learning_gain=result.learning_gain
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
@@ -650,10 +786,12 @@ async def submit_code(data: CodeInput):
 async def explain_code_session(
     session_id: str,
     stream: bool = Query(False),
-    persona: Optional[str] = Query(None, description="Persona type: beginner, student, or senior_dev")
+    persona: Optional[str] = Query(None, description="Persona type: beginner, student, or senior_dev"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
-    Generate structured explanation for stored code.
+    Generate structured explanation for stored code and save to user's history.
 
     Supports streaming via query parameter: ?stream=true
     Supports persona adaptation via query parameter: ?persona=beginner
@@ -662,6 +800,8 @@ async def explain_code_session(
         session_id: The code session identifier
         stream: If True, stream the explanation progressively (default: False)
         persona: Optional persona type for adaptive explanation (beginner, student, senior_dev)
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
 
     Returns:
         If stream=False: CodeExplanationResponse with explanation text (JSON)
@@ -669,6 +809,7 @@ async def explain_code_session(
 
     Raises:
         HTTPException: If session not found or explanation fails
+        HTTPException 401: If authentication fails
     """
     if stream:
         # Return streaming response with persona
@@ -679,43 +820,111 @@ async def explain_code_session(
     else:
         # Return normal JSON response with persona
         result = await explain_code(session_id, persona=persona)
+        
+        # Get code from session for history
+        from app.services.code_session_service import get_code_session
+        session = get_code_session(session_id)
+        
+        # Save to database
+        import json
+        history_entry = CodeAnalysisHistory(
+            user_id=current_user.id,
+            analysis_type="explain_code",
+            input_code=session.get("code", ""),
+            result_output=result.get("explanation", ""),
+            language=session.get("language"),
+            session_id=session_id
+        )
+        db.add(history_entry)
+        db.commit()
+        
         return result
 
 
 
 @app.post("/code/improve/{session_id}", response_model=CodeImprovementResponse)
-async def improve_code_session(session_id: str):
+async def improve_code_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Generate improvement suggestions for stored code.
+    Generate improvement suggestions for stored code and save to user's history.
     
     Args:
         session_id: The code session identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         CodeImprovementResponse with improvement suggestions
         
     Raises:
         HTTPException: If session not found or improvement generation fails
+        HTTPException 401: If authentication fails
     """
     result = await improve_code(session_id)
+    
+    # Get code from session for history
+    from app.services.code_session_service import get_code_session
+    session = get_code_session(session_id)
+    
+    # Save to database
+    import json
+    history_entry = CodeAnalysisHistory(
+        user_id=current_user.id,
+        analysis_type="improve_code",
+        input_code=session.get("code", ""),
+        result_output=json.dumps(result.dict() if hasattr(result, 'dict') else result),
+        language=session.get("language"),
+        session_id=session_id
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
 @app.post("/code/complexity/{session_id}", response_model=ComplexityResponse)
-async def analyze_code_complexity(session_id: str):
+async def analyze_code_complexity(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Analyze time and space complexity of stored code.
+    Analyze time and space complexity of stored code and save to user's history.
     
     Args:
         session_id: The code session identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         ComplexityResponse with time complexity, space complexity, and justification
         
     Raises:
         HTTPException: If session not found or complexity analysis fails
+        HTTPException 401: If authentication fails
     """
     result = await analyze_complexity(session_id)
+    
+    # Get code from session for history
+    from app.services.code_session_service import get_code_session
+    session = get_code_session(session_id)
+    
+    # Save to database
+    import json
+    history_entry = CodeAnalysisHistory(
+        user_id=current_user.id,
+        analysis_type="complexity_analysis",
+        input_code=session.get("code", ""),
+        result_output=json.dumps(result.dict() if hasattr(result, 'dict') else result),
+        language=session.get("language"),
+        session_id=session_id
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
@@ -738,92 +947,217 @@ async def generate_code_from_description(request: CodeGenerationRequest):
 
 
 @app.post("/code/refactor/{session_id}", response_model=CodeRefactorResponse)
-async def refactor_code_session(session_id: str):
+async def refactor_code_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Refactor and improve stored code.
+    Refactor and improve stored code and save to user's history.
     
     Args:
         session_id: The code session identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         CodeRefactorResponse with refactored code
         
     Raises:
         HTTPException: If session not found or refactoring fails
+        HTTPException 401: If authentication fails
     """
     result = await refactor_code(session_id)
+    
+    # Get code from session for history
+    from app.services.code_session_service import get_code_session
+    session = get_code_session(session_id)
+    
+    # Save to database
+    import json
+    history_entry = CodeAnalysisHistory(
+        user_id=current_user.id,
+        analysis_type="refactor_code",
+        input_code=session.get("code", ""),
+        result_output=json.dumps(result.dict() if hasattr(result, 'dict') else result),
+        language=session.get("language"),
+        session_id=session_id
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
 @app.post("/code/stepwise/{session_id}", response_model=CodeStepwiseResponse)
-async def explain_code_stepwise_session(session_id: str):
+async def explain_code_stepwise_session(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Generate step-by-step explanation for stored code.
+    Generate step-by-step explanation for stored code and save to user's history.
     
     Args:
         session_id: The code session identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         CodeStepwiseResponse with step-by-step explanation
         
     Raises:
         HTTPException: If session not found or explanation fails
+        HTTPException 401: If authentication fails
     """
     result = await explain_code_stepwise(session_id)
+    
+    # Get code from session for history
+    from app.services.code_session_service import get_code_session
+    session = get_code_session(session_id)
+    
+    # Save to database
+    import json
+    history_entry = CodeAnalysisHistory(
+        user_id=current_user.id,
+        analysis_type="stepwise_explanation",
+        input_code=session.get("code", ""),
+        result_output=json.dumps(result.dict() if hasattr(result, 'dict') else result),
+        language=session.get("language"),
+        session_id=session_id
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
 @app.post("/code/architecture/{session_id}", response_model=CodeArchitectureResponse)
-async def analyze_code_architecture(session_id: str):
+async def analyze_code_architecture(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Perform high-level architectural analysis of stored code.
+    Perform high-level architectural analysis of stored code and save to user's history.
     
     Args:
         session_id: The code session identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         CodeArchitectureResponse with architecture analysis
         
     Raises:
         HTTPException: If session not found or analysis fails
+        HTTPException 401: If authentication fails
     """
     result = await analyze_architecture(session_id)
+    
+    # Get code from session for history
+    from app.services.code_session_service import get_code_session
+    session = get_code_session(session_id)
+    
+    # Save to database
+    import json
+    history_entry = CodeAnalysisHistory(
+        user_id=current_user.id,
+        analysis_type="architecture_analysis",
+        input_code=session.get("code", ""),
+        result_output=json.dumps(result.dict() if hasattr(result, 'dict') else result),
+        language=session.get("language"),
+        session_id=session_id
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
 @app.post("/code/refactor-impact/{session_id}", response_model=RefactorImpactResponse)
-async def compare_refactor_impact_endpoint(session_id: str):
+async def compare_refactor_impact_endpoint(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Compare complexity between original and refactored code.
+    Compare complexity between original and refactored code and save to user's history.
     
     Args:
         session_id: The code session identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         RefactorImpactResponse with complexity comparison and improvement summary
         
     Raises:
         HTTPException: If session not found, refactored code not available, or analysis fails
+        HTTPException 401: If authentication fails
     """
     result = await compare_refactor_impact(session_id)
+    
+    # Get code from session for history
+    from app.services.code_session_service import get_code_session
+    session = get_code_session(session_id)
+    
+    # Save to database
+    import json
+    history_entry = CodeAnalysisHistory(
+        user_id=current_user.id,
+        analysis_type="refactor_impact",
+        input_code=session.get("code", ""),
+        result_output=json.dumps(result.dict() if hasattr(result, 'dict') else result),
+        language=session.get("language"),
+        session_id=session_id
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
 @app.post("/code/quality/{session_id}", response_model=CodeQualityResponse)
-async def evaluate_code_quality_endpoint(session_id: str):
+async def evaluate_code_quality_endpoint(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     """
-    Evaluate code quality with scores for readability, efficiency, and maintainability.
+    Evaluate code quality with scores for readability, efficiency, and maintainability and save to user's history.
     
     Args:
         session_id: The code session identifier
+        current_user: Current authenticated user (from JWT token)
+        db: Database session
         
     Returns:
         CodeQualityResponse with quality scores and summary
         
     Raises:
         HTTPException: If session not found or evaluation fails
+        HTTPException 401: If authentication fails
     """
     result = await evaluate_code_quality(session_id)
+    
+    # Get code from session for history
+    from app.services.code_session_service import get_code_session
+    session = get_code_session(session_id)
+    
+    # Save to database
+    import json
+    history_entry = CodeAnalysisHistory(
+        user_id=current_user.id,
+        analysis_type="quality_check",
+        input_code=session.get("code", ""),
+        result_output=json.dumps(result.dict() if hasattr(result, 'dict') else result),
+        language=session.get("language"),
+        session_id=session_id
+    )
+    db.add(history_entry)
+    db.commit()
+    
     return result
 
 
