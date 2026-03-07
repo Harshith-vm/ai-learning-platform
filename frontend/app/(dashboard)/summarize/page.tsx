@@ -191,7 +191,7 @@ export default function SummarizePage() {
       summary={summary.summary}
       mainThemes={summary.main_themes}
       keyPoints={summary.key_points}
-      documentId={documentId}
+      documentId={documentId || ""}
     />
   );
 }

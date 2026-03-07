@@ -4,7 +4,7 @@ import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { isAuthenticated } from '@/lib/auth';
-import { authAPI } from '@/lib/api';
+import { registerUser } from '@/lib/api';
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -70,13 +70,21 @@ export default function RegisterPage() {
         setIsLoading(true);
 
         try {
-            await authAPI.register(email, password, persona);
+            // registerUser automatically stores token and user info
+            await registerUser(email, password, persona);
 
-            // Registration successful - redirect to login
-            router.push('/login');
+            // Registration successful - redirect to dashboard (better UX than login page)
+            router.push('/dashboard');
         } catch (err) {
             if (err instanceof Error) {
-                setError(err.message);
+                const errorMessage = err.message.toLowerCase();
+                if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
+                    setError('This email is already registered. Please login instead.');
+                } else if (errorMessage.includes('network') || errorMessage.includes('connect')) {
+                    setError('Cannot connect to server. Please ensure the backend is running.');
+                } else {
+                    setError(err.message);
+                }
             } else {
                 setError('Registration failed. Please try again.');
             }
