@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useDocument } from "@/contexts/DocumentContext";
 import { MCQPlayer } from "@/components/mcq/MCQPlayer";
+import { apiRequest } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 
 export default function PostTestPage() {
@@ -31,18 +32,13 @@ export default function PostTestPage() {
         setError("");
 
         try {
-            const response = await fetch(
-                `http://127.0.0.1:8000/learning/post-test/${documentId}`,
+            const data = await apiRequest(
+                `/learning/post-test/${documentId}`,
                 {
                     method: "POST",
                 }
             );
 
-            if (!response.ok) {
-                throw new Error("Failed to generate post-test");
-            }
-
-            const data = await response.json();
             setMcqs(data.mcqs);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to load post-test");
@@ -53,14 +49,14 @@ export default function PostTestPage() {
 
     const handlePostTestComplete = async (answers: any[], score: number, totalQuestions: number) => {
         try {
+            console.log('Submitting post-test for document:', documentId);
+            console.log('Answers:', answers);
+
             // Submit post-test answers
-            const response = await fetch(
-                `http://127.0.0.1:8000/learning/post-test/submit/${documentId}`,
+            const result = await apiRequest(
+                `/learning/post-test/submit/${documentId}`,
                 {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
                     body: JSON.stringify({
                         answers: answers.map((answer, index) => ({
                             question_index: index,
@@ -70,11 +66,7 @@ export default function PostTestPage() {
                 }
             );
 
-            if (!response.ok) {
-                throw new Error("Failed to submit post-test");
-            }
-
-            const result = await response.json();
+            console.log('Post-test result:', result);
 
             // Update learning gain state
             setLearningGainState({
@@ -92,7 +84,8 @@ export default function PostTestPage() {
             router.push("/learning-gain");
         } catch (err) {
             console.error("Failed to submit post-test:", err);
-            alert("Failed to submit post-test. Please try again.");
+            console.error("Error details:", err instanceof Error ? err.message : String(err));
+            alert(`Failed to submit post-test: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`);
         }
     };
 

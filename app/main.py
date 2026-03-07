@@ -76,11 +76,7 @@ app = FastAPI(title="AI Learning Platform", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://192.168.1.8:3000",  # your frontend network IP
-    ],
+    allow_origins=["*"],  # Allow all origins for development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -747,7 +743,17 @@ async def submit_post_test_answers(
     # Get the post-test MCQs to determine total questions
     from app.services.document_service import DOCUMENT_STORE
     post_test_mcqs = DOCUMENT_STORE[document_id]["learning_session"].get("post_test_mcqs", [])
-    total_questions = len(post_test_mcqs)
+    
+    # Handle both list and MCQResponse object
+    if hasattr(post_test_mcqs, 'mcqs'):
+        # It's an MCQResponse object
+        total_questions = len(post_test_mcqs.mcqs)
+    elif isinstance(post_test_mcqs, list):
+        # It's a list
+        total_questions = len(post_test_mcqs)
+    else:
+        # Fallback - calculate from result
+        total_questions = 10  # Default
     
     # Save MCQ history for post-test using history service
     save_mcq_history(
