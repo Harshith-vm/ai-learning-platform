@@ -104,6 +104,46 @@ def get_document_summary_history(
     ]
 
 
+@router.get("/document-summaries/{summary_id}")
+def get_document_summary_by_id(
+    summary_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get a single document summary by ID with full details.
+    
+    Args:
+        summary_id: ID of the document summary
+        db: Database session
+        current_user: Current authenticated user
+        
+    Returns:
+        Full document summary details including complete summary_text and main_themes
+    """
+    summary = (
+        db.query(DocumentSummaryHistory)
+        .filter(
+            DocumentSummaryHistory.id == summary_id,
+            DocumentSummaryHistory.user_id == current_user.id
+        )
+        .first()
+    )
+    
+    if not summary:
+        raise HTTPException(status_code=404, detail="Document summary not found")
+    
+    import json
+    return {
+        "id": summary.id,
+        "document_id": summary.document_id,
+        "title": summary.title,
+        "summary_text": summary.summary_text,
+        "main_themes": json.loads(summary.main_themes) if summary.main_themes else None,
+        "created_at": summary.created_at.isoformat()
+    }
+
+
 @router.get("/key-points")
 def get_key_points_history(
     skip: int = Query(0, ge=0),
@@ -357,6 +397,46 @@ def get_code_analysis_history(
         }
         for h in history
     ]
+
+
+@router.get("/code-analyses/{analysis_id}")
+def get_code_analysis_by_id(
+    analysis_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Get a single code analysis by ID with full details.
+    
+    Args:
+        analysis_id: ID of the code analysis
+        db: Database session
+        current_user: Current authenticated user
+        
+    Returns:
+        Full code analysis details including complete input_code and result_output
+    """
+    analysis = (
+        db.query(CodeAnalysisHistory)
+        .filter(
+            CodeAnalysisHistory.id == analysis_id,
+            CodeAnalysisHistory.user_id == current_user.id
+        )
+        .first()
+    )
+    
+    if not analysis:
+        raise HTTPException(status_code=404, detail="Code analysis not found")
+    
+    return {
+        "id": analysis.id,
+        "analysis_type": analysis.analysis_type,
+        "language": analysis.language,
+        "session_id": analysis.session_id,
+        "input_code": analysis.input_code,
+        "result_output": analysis.result_output,
+        "created_at": analysis.created_at.isoformat()
+    }
 
 
 @router.get("/stats")

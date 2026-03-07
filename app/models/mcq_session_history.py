@@ -4,7 +4,11 @@ Task 73: Save MCQ session scores per user
 """
 from sqlalchemy import Column, Integer, String, Float, Text, DateTime, ForeignKey
 from datetime import datetime
+import pytz
 from app.database import Base
+
+# IST timezone
+IST = pytz.timezone("Asia/Kolkata")
 
 
 class MCQSessionHistory(Base):
@@ -19,7 +23,7 @@ class MCQSessionHistory(Base):
         correct_answers: Number of correct answers
         score_percentage: Score as a percentage (0-100)
         detailed_results: JSON string containing detailed results for each question
-        created_at: Timestamp of session completion
+        created_at: Timestamp of session completion (IST)
     """
     __tablename__ = "mcq_session_history"
 
@@ -30,7 +34,7 @@ class MCQSessionHistory(Base):
     correct_answers = Column(Integer, nullable=False)
     score_percentage = Column(Float, nullable=False)
     detailed_results = Column(Text, nullable=False)  # JSON string
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST), nullable=False)
 
     def __repr__(self):
         return f"<MCQSessionHistory(id={self.id}, user_id={self.user_id}, score={self.score_percentage}%)>"

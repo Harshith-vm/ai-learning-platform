@@ -8,6 +8,7 @@ import { FileMetaDisplay } from "./FileMetaDisplay";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/api";
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
@@ -27,7 +28,7 @@ const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 
 export function UploadCard() {
   const router = useRouter();
-  const { setDocumentId, setDocumentName } = useDocument();
+  const { setDocumentId, setDocumentName, setSummary } = useDocument();
   const [state, setState] = useState<UploadState>("idle");
   const [file, setFile] = useState<UploadedFile | null>(null);
   const [localDocumentId, setLocalDocumentId] = useState<string>("");
@@ -64,8 +65,6 @@ export function UploadCard() {
     setProgress(0);
 
     try {
-
-
       // Simulate progress
       const progressInterval = setInterval(() => {
         setProgress((prev) => {
@@ -78,33 +77,23 @@ export function UploadCard() {
       }, 200);
 
       const formData = new FormData();
-      formData.append("file", selectedFile); // ✅ correct File object
+      formData.append("file", selectedFile);
 
-      const response = await fetch("http://127.0.0.1:8000/upload-document", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const err = await response.text();
-        throw new Error(err);
-      }
-
-      const data = await response.json();
+      const data = await apiRequest<{ document_id: string; filename: string }>(
+        "/upload-document",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
 
       clearInterval(progressInterval);
       setProgress(100);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || `Upload failed: ${response.statusText}`
-        );
-      }
-
-      // Store document_id from response
+      // Store document_id from response and clear old summary
       if (data.document_id) {
         setLocalDocumentId(data.document_id);
+        setSummary(null); // Clear old summary to force regeneration
         setDocumentId(data.document_id);
         setDocumentName(selectedFile.name);
       }

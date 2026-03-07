@@ -9,6 +9,7 @@ import { SummaryCard } from "@/components/summary/SummaryCard";
 import { SummarySkeleton } from "@/components/summary/SummarySkeleton";
 import { SummaryError } from "@/components/summary/SummaryError";
 import Link from "next/link";
+import { apiRequest } from "@/lib/api";
 
 export default function SummarizePage() {
   const router = useRouter();
@@ -17,51 +18,43 @@ export default function SummarizePage() {
   const [error, setError] = useState<string>("");
   const [pastedContent, setPastedContent] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [summaryLoaded, setSummaryLoaded] = useState(false);
 
   const fetchSummary = async () => {
     if (!documentId) return;
+    if (summaryLoaded) return; // Prevent infinite regeneration
 
+    // Clear previous summary and error
+    setSummary(null);
     setLoading(true);
     setError("");
 
     try {
       // Fetch or generate summary
-      const summaryResponse = await fetch(
-        `http://127.0.0.1:8000/summarize/${documentId}`,
+      const summaryData = await apiRequest<any>(
+        `/summarize/${documentId}`,
         {
           method: "POST",
         }
       );
 
-      if (!summaryResponse.ok) {
-        const errorText = await summaryResponse.text();
-        throw new Error(errorText || "Failed to generate summary");
-      }
-
-      const summaryData = await summaryResponse.json();
-
       // Automatically fetch key points after summary
       try {
-        const keyPointsResponse = await fetch(
-          `http://127.0.0.1:8000/key-points/${documentId}`,
+        const keyPointsData = await apiRequest<{ key_points: string[] }>(
+          `/key-points/${documentId}`,
           {
             method: "POST",
           }
         );
 
-        if (keyPointsResponse.ok) {
-          const keyPointsData = await keyPointsResponse.json();
-          summaryData.key_points = keyPointsData.key_points;
-        }
+        summaryData.key_points = keyPointsData.key_points;
       } catch (keyPointsErr) {
         console.warn("Failed to fetch key points:", keyPointsErr);
         // Continue without key points
       }
 
       setSummary(summaryData);
-
-      // Redirect to Learning Gain Dashboard after summary is ready
-      router.push("/learning-gain");
+      setSummaryLoaded(true); // Mark as loaded to prevent regeneration
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to load summary"
@@ -78,20 +71,11 @@ export default function SummarizePage() {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/generate-summary", {
+      const summaryData = await apiRequest<any>("/generate-summary", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ text: pastedContent }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to generate summary");
-      }
-
-      const summaryData = await response.json();
       setSummary(summaryData);
       setDocumentName("Pasted Content");
     } catch (err) {
@@ -103,8 +87,12 @@ export default function SummarizePage() {
     }
   };
 
+  // Trigger summary generation when documentId changes
   useEffect(() => {
-    if (documentId && !summary) {
+    if (documentId) {
+      // Clear previous summary and reset loaded state
+      setSummary(null);
+      setSummaryLoaded(false); // Reset to allow new generation
       fetchSummary();
     }
   }, [documentId]);
@@ -203,7 +191,7 @@ export default function SummarizePage() {
       summary={summary.summary}
       mainThemes={summary.main_themes}
       keyPoints={summary.key_points}
-      documentId={documentId}
+      documentId={documentId || ""}
     />
   );
 }

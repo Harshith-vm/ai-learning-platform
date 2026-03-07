@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import { MCQOption } from "./MCQOption";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/api";
 
 interface MCQOptionData {
     option: string;
@@ -74,18 +75,12 @@ export function MCQPlayer({ documentId, mcqsData, onComplete, mode = "normal" }:
         setError("");
 
         try {
-            const response = await fetch(
-                `http://127.0.0.1:8000/mcqs/${documentId}`,
+            const data = await apiRequest<{ mcqs: any[] }>(
+                `/mcqs/${documentId}`,
                 {
                     method: "POST",
                 }
             );
-
-            if (!response.ok) {
-                throw new Error("Failed to generate MCQs");
-            }
-
-            const data = await response.json();
 
             // Backend returns the correct format, use it directly
             console.log("MCQs received from backend:", data.mcqs);

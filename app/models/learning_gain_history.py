@@ -3,7 +3,11 @@ Learning Gain History model for storing user learning progress.
 """
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from datetime import datetime
+import pytz
 from app.database import Base
+
+# IST timezone
+IST = pytz.timezone("Asia/Kolkata")
 
 
 class LearningGainHistory(Base):
@@ -17,7 +21,7 @@ class LearningGainHistory(Base):
         pre_test_score: Pre-test score percentage
         post_test_score: Post-test score percentage
         learning_gain: Calculated learning gain percentage
-        created_at: Timestamp of post-test completion
+        created_at: Timestamp of post-test completion (IST)
     """
     __tablename__ = "learning_gain_history"
 
@@ -27,7 +31,7 @@ class LearningGainHistory(Base):
     pre_test_score = Column(Float, nullable=False)
     post_test_score = Column(Float, nullable=False)
     learning_gain = Column(Float, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST), nullable=False)
 
     def __repr__(self):
         return f"<LearningGainHistory(id={self.id}, user_id={self.user_id}, learning_gain={self.learning_gain}%)>"

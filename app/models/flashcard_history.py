@@ -3,7 +3,11 @@ Flashcard History model for storing user-generated flashcards.
 """
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from datetime import datetime
+import pytz
 from app.database import Base
+
+# IST timezone
+IST = pytz.timezone("Asia/Kolkata")
 
 
 class FlashcardHistory(Base):
@@ -15,7 +19,7 @@ class FlashcardHistory(Base):
         user_id: Foreign key to users table
         document_id: The document ID from which flashcards were generated
         flashcards: JSON string of generated flashcards
-        created_at: Timestamp of generation
+        created_at: Timestamp of generation (IST)
     """
     __tablename__ = "flashcard_history"
 
@@ -23,7 +27,7 @@ class FlashcardHistory(Base):
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     document_id = Column(String, nullable=False, index=True)
     flashcards = Column(Text, nullable=False)  # JSON string
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST), nullable=False)
 
     def __repr__(self):
         return f"<FlashcardHistory(id={self.id}, user_id={self.user_id}, document_id={self.document_id})>"

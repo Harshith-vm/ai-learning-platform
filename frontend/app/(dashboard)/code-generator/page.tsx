@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Code2, Loader2, Copy, Download, RefreshCw, Sparkles } from "lucide-react";
+import { apiRequest } from "@/lib/api";
 
 const LANGUAGES = [
     "Python",
@@ -40,11 +41,8 @@ export default function CodeGeneratorPage() {
         setGeneratedCode("");
 
         try {
-            const response = await fetch("http://127.0.0.1:8000/code/generate", {
+            const data = await apiRequest<{ generated_code: string }>("/code/generate", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
                 body: JSON.stringify({
                     problem_description: problemDescription,
                     language: language,
@@ -52,12 +50,6 @@ export default function CodeGeneratorPage() {
                 }),
             });
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || "Failed to generate code");
-            }
-
-            const data = await response.json();
             setGeneratedCode(data.generated_code);
         } catch (err) {
             setError(

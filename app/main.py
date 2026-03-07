@@ -55,6 +55,12 @@ from app.services.learning_gain_service import (
 from app.services.code_session_service import store_code_session, explain_code, improve_code, analyze_complexity, refactor_code, explain_code_stepwise, analyze_architecture, compare_refactor_impact, evaluate_code_quality
 from app.services.code_generation_service import generate_code
 from app.services.code_tools_service import detect_code_blocks, review_pull_request, explain_code_inline, convert_code
+from app.services.history_service import (
+    save_summary_history,
+    save_document_summary_history,
+    save_mcq_history,
+    save_mcq_session_history
+)
 from app.routers.auth_router import router as auth_router
 from app.routers.history_router import router as history_router
 from app.database import engine, Base, get_db
@@ -167,14 +173,13 @@ async def create_summary(
         # Generate summary
         summary = await generate_summary(request.text)
         
-        # Save to database
-        history_entry = SummaryHistory(
+        # Save to database using history service
+        save_summary_history(
+            db=db,
             user_id=current_user.id,
             original_text=request.text,
             summary_text=summary.summary
         )
-        db.add(history_entry)
-        db.commit()
         
         return summary
     except ValueError as e:
@@ -414,17 +419,16 @@ async def create_document_summary(
     # Generate summary
     summary = await summarize_document(document_id)
     
-    # Save to database
+    # Save to database using history service
     import json
-    history_entry = DocumentSummaryHistory(
+    save_document_summary_history(
+        db=db,
         user_id=current_user.id,
         document_id=document_id,
         title=summary.title,
         summary_text=summary.summary,
         main_themes=json.dumps(summary.main_themes) if hasattr(summary, 'main_themes') and summary.main_themes else None
     )
-    db.add(history_entry)
-    db.commit()
     
     return summary
 
@@ -495,9 +499,8 @@ async def create_flashcards(
     # Convert flashcards to dict format for JSON serialization
     flashcards_data = [
         {
-            "front": fc.front,
-            "back": fc.back,
-            "difficulty": fc.difficulty
+            "question": fc.question,
+            "answer": fc.answer
         }
         for fc in flashcards.flashcards
     ]
@@ -624,9 +627,10 @@ async def create_mcq_session(
     # Evaluate the MCQ session
     session_result = await evaluate_mcq_session(document_id, request)
     
-    # Save to database
+    # Save to database using history service
     import json
-    history_entry = MCQSessionHistory(
+    save_mcq_session_history(
+        db=db,
         user_id=current_user.id,
         document_id=document_id,
         total_questions=session_result.total_questions,
@@ -634,9 +638,8 @@ async def create_mcq_session(
         score_percentage=session_result.score_percentage,
         detailed_results=json.dumps(session_result.detailed_results)
     )
-    db.add(history_entry)
-    db.commit()
     
+    return session_result
     return session_result
 
 
@@ -684,16 +687,15 @@ async def submit_pre_test_answers(
     # Evaluate the test
     result = await submit_pre_test(document_id, request)
     
-    # Save to database
-    history_entry = MCQHistory(
+    # Save to database using history service
+    save_mcq_history(
+        db=db,
         user_id=current_user.id,
         document_id=document_id,
         test_type="pre_test",
         score=result.correct_answers,
         total_questions=result.total_questions
     )
-    db.add(history_entry)
-    db.commit()
     
     return result
 
@@ -742,16 +744,38 @@ async def submit_post_test_answers(
     # Submit post-test and calculate learning gain
     result = await submit_post_test(document_id, request)
     
-    # Save to database
-    history_entry = LearningGainHistory(
+    # Get the post-test MCQs to determine total questions
+    from app.services.document_service import DOCUMENT_STORE
+    post_test_mcqs = DOCUMENT_STORE[document_id]["learning_session"].get("post_test_mcqs", [])
+    total_questions = len(post_test_mcqs)
+    
+    # Save MCQ history for post-test using history service
+    save_mcq_history(
+        db=db,
         user_id=current_user.id,
         document_id=document_id,
-        pre_test_score=result.pre_test_score,
-        post_test_score=result.post_test_score,
-        learning_gain=result.learning_gain
+        test_type="post_test",
+        score=int(result.post_score * total_questions / 100),
+        total_questions=total_questions
     )
-    db.add(history_entry)
-    db.commit()
+    
+    # Save learning gain history
+    from app.models.learning_gain_history import LearningGainHistory
+    try:
+        history_entry = LearningGainHistory(
+            user_id=current_user.id,
+            document_id=document_id,
+            pre_test_score=result.pre_score,
+            post_test_score=result.post_score,
+            learning_gain=result.learning_gain_percentage
+        )
+        db.add(history_entry)
+        db.commit()
+        db.refresh(history_entry)
+        print(f"[HISTORY] Learning gain saved with id {history_entry.id}")
+    except Exception as e:
+        db.rollback()
+        print(f"[HISTORY ERROR] Failed to save learning gain history: {e}")
     
     return result
 
