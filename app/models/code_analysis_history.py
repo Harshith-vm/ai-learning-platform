@@ -4,7 +4,11 @@ Task 74: Save code analyses per user
 """
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from datetime import datetime
+import pytz
 from app.database import Base
+
+# IST timezone
+IST = pytz.timezone("Asia/Kolkata")
 
 
 class CodeAnalysisHistory(Base):
@@ -19,7 +23,7 @@ class CodeAnalysisHistory(Base):
         result_output: The analysis result (JSON string or text)
         language: Programming language (optional)
         session_id: Code session identifier (optional)
-        created_at: Timestamp of analysis
+        created_at: Timestamp of analysis (IST)
     """
     __tablename__ = "code_analysis_history"
 
@@ -30,7 +34,7 @@ class CodeAnalysisHistory(Base):
     result_output = Column(Text, nullable=False)
     language = Column(String, nullable=True)
     session_id = Column(String, nullable=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(IST), nullable=False)
 
     def __repr__(self):
         return f"<CodeAnalysisHistory(id={self.id}, user_id={self.user_id}, analysis_type={self.analysis_type})>"

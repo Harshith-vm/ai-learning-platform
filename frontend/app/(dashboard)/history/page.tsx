@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { authenticatedRequest } from '@/lib/api';
 import { History, FileText, HelpCircle, Code, Trash2, Eye, Calendar } from 'lucide-react';
 
@@ -8,7 +9,8 @@ type TabType = 'summaries' | 'mcqs' | 'code-analysis';
 
 interface Summary {
     id: number;
-    original_text: string;
+    document_id: string;
+    title: string;
     summary_text: string;
     created_at: string;
 }
@@ -32,6 +34,7 @@ interface CodeAnalysis {
 }
 
 export default function HistoryPage() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<TabType>('summaries');
     const [summaries, setSummaries] = useState<Summary[]>([]);
     const [mcqs, setMcqs] = useState<MCQ[]>([]);
@@ -53,7 +56,7 @@ export default function HistoryPage() {
 
         try {
             if (activeTab === 'summaries') {
-                const data = await authenticatedRequest<Summary[]>('/history/summaries');
+                const data = await authenticatedRequest<Summary[]>('/history/document-summaries');
                 setSummaries(data);
             } else if (activeTab === 'mcqs') {
                 const data = await authenticatedRequest<MCQ[]>('/history/mcqs');
@@ -75,6 +78,15 @@ export default function HistoryPage() {
         setDeleteError('');
     };
 
+    const handleView = (id: number, type: TabType) => {
+        if (type === 'code-analysis') {
+            router.push(`/history/code-analysis/${id}`);
+        } else if (type === 'summaries') {
+            router.push(`/history/document-summary/${id}`);
+        }
+        // Add handlers for other types if needed in the future
+    };
+
     const confirmDelete = async () => {
         if (!itemToDelete) return;
 
@@ -82,7 +94,7 @@ export default function HistoryPage() {
         setDeleteError('');
 
         try {
-            const endpoint = itemToDelete.type === 'code-analysis' ? 'code-analyses' : itemToDelete.type;
+            const endpoint = itemToDelete.type === 'code-analysis' ? 'code-analyses' : itemToDelete.type === 'summaries' ? 'document-summaries' : itemToDelete.type;
             await authenticatedRequest(`/history/${endpoint}/${itemToDelete.id}`, {
                 method: 'DELETE',
             });
@@ -198,8 +210,11 @@ export default function HistoryPage() {
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1">
                                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                                                    Summary
+                                                    {summary.title || 'Document Summary'}
                                                 </h3>
+                                                <p className="text-gray-600 text-sm mb-2">
+                                                    Document ID: <span className="font-mono text-xs">{summary.document_id}</span>
+                                                </p>
                                                 <p className="text-gray-600 text-sm mb-3 line-clamp-2">
                                                     {summary.summary_text}
                                                 </p>
@@ -210,6 +225,7 @@ export default function HistoryPage() {
                                             </div>
                                             <div className="flex gap-2 ml-4">
                                                 <button
+                                                    onClick={() => handleView(summary.id, 'summaries')}
                                                     className="flex items-center gap-1 px-3 py-2 text-sm bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
                                                     title="View"
                                                 >
@@ -322,6 +338,7 @@ export default function HistoryPage() {
                                             </div>
                                             <div className="flex gap-2 ml-4">
                                                 <button
+                                                    onClick={() => handleView(analysis.id, 'code-analysis')}
                                                     className="flex items-center gap-1 px-3 py-2 text-sm bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
                                                     title="View"
                                                 >
