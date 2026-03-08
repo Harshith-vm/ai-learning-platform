@@ -3,7 +3,7 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { authAPI } from '@/lib/api';
+import { loginUser } from '@/lib/api';
 import { isAuthenticated } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -26,10 +26,8 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            const response = await authAPI.login(email, password);
-
-            // Store token in localStorage
-            localStorage.setItem('token', response.access_token);
+            // loginUser automatically stores token and user info
+            await loginUser(email, password);
 
             // Redirect to dashboard
             router.push('/dashboard');
@@ -41,6 +39,8 @@ export default function LoginPage() {
                     setError('Email not registered or incorrect password. Please check your credentials.');
                 } else if (errorMessage.includes('404')) {
                     setError('Email not registered. Please sign up first.');
+                } else if (errorMessage.includes('network') || errorMessage.includes('connect')) {
+                    setError('Cannot connect to server. Please ensure the backend is running.');
                 } else {
                     setError(err.message);
                 }
